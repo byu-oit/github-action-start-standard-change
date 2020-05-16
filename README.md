@@ -1,114 +1,121 @@
-
-<p align="center">
-  <a href="https://github.com/actions/javascript-action/actions"><img alt="javscript-action status" src="https://github.com/actions/javascript-action/workflows/units-test/badge.svg"></a>
-</p>
-
-# Create a JavaScript Action
-
-Use this template to bootstrap the creation of a JavaScript action.:rocket:
-
-This template includes tests, linting, a validation workflow, publishing, and versioning guidance.  
-
-If you are new, there's also a simpler introduction.  See the [Hello World JavaScript Action](https://github.com/actions/hello-world-javascript-action)
-
-## Create an action from this template
-
-Click the `Use this Template` and provide the new repo details for your action
-
-## Code in Master
-
-Install the dependencies  
-```bash
-$ npm install
-```
-
-Run the tests :heavy_check_mark:  
-```bash
-$ npm test
-
- PASS  ./index.test.js
-  ✓ throws invalid number (3ms)
-  ✓ wait 500 ms (504ms)
-  ✓ test runs (95ms)
-
-...
-```
-
-## Change action.yml
-
-The action.yml contains defines the inputs and output for your action.
-
-Update the action.yml with your name, description, inputs and outputs for your action.
-
-See the [documentation](https://help.github.com/en/articles/metadata-syntax-for-github-actions)
-
-## Change the Code
-
-Most toolkit and CI/CD operations involve async operations so the action is run in an async function.
-
-```javascript
-const core = require('@actions/core');
-...
-
-async function run() {
-  try { 
-      ...
-  } 
-  catch (error) {
-    core.setFailed(error.message);
-  }
-}
-
-run()
-```
-
-See the [toolkit documentation](https://github.com/actions/toolkit/blob/master/README.md#packages) for the various packages.
-
-## Package for distribution
-
-GitHub Actions will run the entry point from the action.yml. Packaging assembles the code into one file that can be checked in to Git, enabling fast and reliable execution and preventing the need to check in node_modules.
-
-Actions are run from GitHub repos.  Packaging the action will create a packaged action in the dist folder.
-
-Run package
-
-```bash
-npm run package
-```
-
-Since the packaged index.js is run from the dist folder.
-
-```bash
-git add dist
-```
-
-## Create a release branch
-
-Users shouldn't consume the action from master since that would be latest code and actions can break compatibility between major versions.
-
-Checkin to the v1 release branch
-
-```bash
-$ git checkout -b v1
-$ git commit -a -m "v1 release"
-```
-
-```bash
-$ git push origin v1
-```
-
-Your action is now published! :rocket: 
-
-See the [versioning documentation](https://github.com/actions/toolkit/blob/master/docs/action-versioning.md)
+# ![BYU logo](https://www.hscripts.com/freeimages/logos/university-logos/byu/byu-logo-clipart-128.gif) start-standard-change
+A GitHub Action for starting standard change RFCs in BYU's ServiceNow system
 
 ## Usage
 
-You can now consume the action by referencing the v1 branch
+* Get an application in WSO2 that's subscribed to [ServiceNowTableAPI - v1](https://api.byu.edu/store/apis/info?name=ServiceNowTableAPI&version=v1&provider=BYU%2Fthirschi), [StandardChange - v1](https://api.byu.edu/store/apis/info?name=StandardChange&version=v1&provider=BYU%2Fdlb44), and [Change_Request - v1](https://api.byu.edu/store/apis/info?name=Change_Request&version=v1&provider=BYU%2Fthirschi)
+  * Then, set the consumer key and secret as `CLIENT_KEY` and `CLIENT_SECRET` in GitHub Secrets
+* Get the alias or sys_id of your standard change template
+  * Existing templates can be found here: [Standard Change Template List](https://it.byu.edu/nav_to.do?uri=%2Fu_standard_change_template_list.do)
+* Estimate how long a deployment should take, in minutes
+
+* Add to your workflow as follows (making replacements as necessary):
+
+<details>
+<summary>In a workflow where the deploy phase is a step, do this...</summary>
+<p>
 
 ```yaml
-uses: actions/javascript-action@v1
-with:
-  milliseconds: 1000
+on: push
+name: Some Pipeline
+jobs:
+  do-all-the-things:
+    runs-on: ubuntu-latest
+    steps:
+      # Build, unit tests, linting, etc.
+      # ...
+      - name: Start Standard Change
+        uses: byu-oit/start-standard-change@v1
+        id: start-standard-change
+        with:
+          client-key: ${{ secrets.CLIENT_KEY }}
+          client-secret: ${{ secrets.CLIENT_SECRET }}
+          template-id: <alias or sys_id of standard change template>
+          minutes-until-planned-end: 30 # Optional, defaults to 15
+      # Your actual deployment step would go here
+      - name: Deploy
+        id: deploy
+        run: echo Deploy
+      - name: End Standard Change
+        uses: byu-oit/end-standard-change@v1
+        if: ${{ always() && steps.start-standard-change.outcome == 'success' }} # Run if RFC started, even if the deploy failed
+        with:
+          client-key: ${{ secrets.CLIENT_KEY }}
+          client-secret: ${{ secrets.CLIENT_SECRET }}
+          change-sys-id: ${{ steps.start-standard-change.outputs.change-sys-id }}
+          work-start: ${{ steps.start-standard-change.outputs.work-start }}
+          success: ${{ steps.deploy.outcome == 'success' }}
 ```
 
-See the [actions tab](https://github.com/actions/javascript-action/actions) for runs of this action! :rocket:
+</p>
+</details>
+
+<details>
+<summary>In a workflow where the deploy phase is a job, do this...</summary>
+<p>
+
+```yaml
+on: push
+name: Some Pipeline
+jobs:
+  # Build, unit tests, linting, etc.
+  # ...
+
+  start-standard-change:
+    name: Start Standard Change
+    needs: <id of previous job>
+    runs-on: ubuntu-latest
+    steps:
+      - name: Start Standard Change
+        uses: byu-oit/start-standard-change@v1
+        id: start-standard-change
+        with:
+          client-key: ${{ secrets.CLIENT_KEY }}
+          client-secret: ${{ secrets.CLIENT_SECRET }}
+          template-id: <alias or sys_id of standard change template>
+          minutes-until-planned-end: 30 # Optional, defaults to 15
+    outputs:
+      change-sys-id: ${{ steps.start-standard-change.outputs.change-sys-id }}
+      work-start: ${{ steps.start-standard-change.outputs.work-start }}
+
+  deploy:
+    name: Deploy
+    needs: start-standard-change
+    runs-on: ubuntu-latest
+    steps:
+      # ...
+
+  end-standard-change:
+    name: End Standard Change
+    needs: [deploy, start-standard-change] # We need to wait on outcome of deploy, and we list start-standard-change so that we can grab its outputs
+    if: ${{ always() && needs.start-standard-change.result == 'success' }} # Run if RFC started, even if the deploy failed
+    runs-on: ubuntu-latest
+    steps:
+      - uses: byu-oit/end-standard-change@v1
+        with:
+          client-key: ${{ secrets.CLIENT_KEY }}
+          client-secret: ${{ secrets.CLIENT_SECRET }}
+          change-sys-id: ${{ needs.start-standard-change.outputs.change-sys-id }}
+          work-start: ${{ needs.start-standard-change.outputs.work-start }}
+          success: ${{ needs.deploy.result == 'success' }} # Evaluates to 'true' or 'false'
+```
+
+</p>
+</details>
+
+>For performance reasons, we'd recommend a workflow where the deploy phase is a step, but sometimes it needs to be a job
+
+## Contributing
+Hopefully this is useful to others at BYU. Feel free to ask me some questions about it, but I make no promises about being able to commit time to support it.
+
+### Modifying Source Code
+
+Just run `npm install` locally. There aren't many files here, so hopefully it should be pretty straightforward.
+
+### Cutting new releases
+
+GitHub Actions will run the entry point from the `action.yml`. In our case, that happens to be `/dist/index.js`.
+
+Actions run from GitHub repos. We don't want to check in `node_modules`. Hence, we package the app using `npm run package`.
+
+Then, be sure to create a new GitHub release, following SemVer.

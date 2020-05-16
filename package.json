@@ -1,12 +1,11 @@
 {
-  "name": "javascript-action",
+  "name": "start-standard-change",
   "version": "1.0.0",
-  "description": "JavaScript Action Template",
+  "description": "BYU ServiceNow - Start Standard Change RFC",
   "main": "index.js",
   "scripts": {
-    "lint": "eslint index.js",
-    "package": "ncc build index.js -o dist",
-    "test": "eslint index.js && jest"
+    "lint": "npx standard index.js",
+    "package": "npx ncc build index.js -m -o dist"
   },
   "repository": {
     "type": "git",
@@ -17,18 +16,19 @@
     "Actions",
     "JavaScript"
   ],
-  "author": "GitHub",
-  "license": "MIT",
+  "author": "Gary Crye <gary_crye@byu.edu>",
+  "license": "Apache-2.0",
   "bugs": {
-    "url": "https://github.com/actions/javascript-action/issues"
+    "url": "https://github.com/byu-oit/start-standard-change/issues"
   },
-  "homepage": "https://github.com/actions/javascript-action#readme",
+  "homepage": "https://github.com/byu-oit/start-standard-change#readme",
   "dependencies": {
-    "@actions/core": "^1.1.1"
+    "@actions/core": "^1.2.4",
+    "@actions/github": "^2.2.0",
+    "byu-wso2-request": "^3.1.0"
   },
   "devDependencies": {
-    "@zeit/ncc": "^0.20.5",
-    "eslint": "^6.3.0",
-    "jest": "^24.9.0"
+    "@zeit/ncc": "^0.22.1",
+    "standard": "^14.3.4"
   }
 }

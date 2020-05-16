@@ -1,0 +1,47 @@
+name: "Test as a job"
+on:
+  push:
+    branches:
+      - master
+
+jobs:
+  # Build, unit tests, linting, etc.
+  # ...
+
+  start-standard-change:
+    name: Start Standard Change
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v1
+      - name: Start Standard Change
+        uses: ./
+        id: start-standard-change
+        with:
+          client-key: ${{ secrets.CLIENT_KEY }}
+          client-secret: ${{ secrets.CLIENT_SECRET }}
+          template-id: ${{ secrets.TEST_TEMPLATE_ID }}
+    outputs:
+      change-sys-id: ${{ steps.start-standard-change.outputs.change-sys-id }}
+      work-start: ${{ steps.start-standard-change.outputs.work-start }}
+
+  deploy:
+    name: Deploy
+    needs: start-standard-change
+    runs-on: ubuntu-latest
+    steps:
+      - name: Deploy
+        run: exit 0
+
+  test-outputs:
+    name: Test Outputs
+    needs: [deploy, start-standard-change]
+    if: ${{ always() && needs.start-standard-change.result == 'success' }}
+    runs-on: ubuntu-latest
+    steps:
+      - run: echo Check env
+        env:
+          client-key: ${{ secrets.CLIENT_KEY }}
+          client-secret: ${{ secrets.CLIENT_SECRET }}
+          change-sys-id: ${{ needs.start-standard-change.outputs.change-sys-id }}
+          work-start: ${{ needs.start-standard-change.outputs.work-start }}
+          success: ${{ needs.deploy.result == 'success' }}

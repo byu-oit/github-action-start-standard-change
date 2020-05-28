@@ -1,4 +1,4 @@
-# ![BYU logo](https://www.hscripts.com/freeimages/logos/university-logos/byu/byu-logo-clipart-128.gif) start-standard-change
+# ![BYU logo](https://www.hscripts.com/freeimages/logos/university-logos/byu/byu-logo-clipart-128.gif) github-action-start-standard-change
 A GitHub Action for starting standard change RFCs in BYU's ServiceNow system
 
 ## Usage
@@ -25,7 +25,7 @@ jobs:
       # Build, unit tests, linting, etc.
       # ...
       - name: Start Standard Change
-        uses: byu-oit/start-standard-change@v1
+        uses: byu-oit/github-action-start-standard-change@v1
         id: start-standard-change
         with:
           client-key: ${{ secrets.CLIENT_KEY }}
@@ -67,7 +67,7 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - name: Start Standard Change
-        uses: byu-oit/start-standard-change@v1
+        uses: byu-oit/github-action-start-standard-change@v1
         id: start-standard-change
         with:
           client-key: ${{ secrets.CLIENT_KEY }}

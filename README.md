@@ -39,7 +39,7 @@ jobs:
         id: deploy
         run: echo Deploy
       - name: End Standard Change
-        uses: byu-oit/end-standard-change@v1
+        uses: byu-oit/github-action-end-standard-change@v1
         if: ${{ always() && steps.start-standard-change.outcome == 'success' }} # Run if RFC started, even if the deploy failed
         with:
           client-key: ${{ secrets.CLIENT_KEY }}
@@ -93,7 +93,7 @@ jobs:
     if: ${{ always() && needs.start-standard-change.result == 'success' }} # Run if RFC started, even if the deploy failed
     runs-on: ubuntu-latest
     steps:
-      - uses: byu-oit/end-standard-change@v1
+      - uses: byu-oit/github-action-end-standard-change@v1
         with:
           client-key: ${{ secrets.CLIENT_KEY }}
           client-secret: ${{ secrets.CLIENT_SECRET }}

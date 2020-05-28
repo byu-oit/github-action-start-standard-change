@@ -3,13 +3,15 @@ A GitHub Action for starting standard change RFCs in BYU's ServiceNow system
 
 ## Usage
 
+### Get the inputs
+
 * Get an application in WSO2 that's subscribed to [ServiceNowTableAPI - v1](https://api.byu.edu/store/apis/info?name=ServiceNowTableAPI&version=v1&provider=BYU%2Fthirschi), [StandardChange - v1](https://api.byu.edu/store/apis/info?name=StandardChange&version=v1&provider=BYU%2Fdlb44), and [Change_Request - v1](https://api.byu.edu/store/apis/info?name=Change_Request&version=v1&provider=BYU%2Fthirschi)
   * Then, set the consumer key and secret as `CLIENT_KEY` and `CLIENT_SECRET` in GitHub Secrets
 * Get the alias or sys_id of your standard change template
   * Existing templates can be found here: [Standard Change Template List](https://it.byu.edu/nav_to.do?uri=%2Fu_standard_change_template_list.do)
 * Estimate how long a deployment should take, in minutes
 
-* Add to your workflow as follows (making replacements as necessary):
+### Add to your workflow (making replacements as necessary)
 
 <details>
 <summary>In a workflow where the deploy phase is a step, do this...</summary>

@@ -6,7 +6,11 @@ A GitHub Action for starting standard change RFCs in BYU's ServiceNow system
 ### Get the inputs
 
 * Get an application in WSO2 that's subscribed to [ServiceNowTableAPI - v1](https://api.byu.edu/store/apis/info?name=ServiceNowTableAPI&version=v1&provider=BYU%2Fthirschi), [StandardChange - v1](https://api.byu.edu/store/apis/info?name=StandardChange&version=v1&provider=BYU%2Fdlb44), and [Change_Request - v1](https://api.byu.edu/store/apis/info?name=Change_Request&version=v1&provider=BYU%2Fthirschi)
-  * Then, set the consumer key and secret as `CLIENT_KEY` and `CLIENT_SECRET` in GitHub Secrets
+   > In the `byu-oit` GitHub organization, we provide the following secrets to every repo:
+   > - `STANDARD_CHANGE_PRODUCTION_CLIENT_KEY`
+   > - `STANDARD_CHANGE_PRODUCTION_CLIENT_SECRET`
+   > - `STANDARD_CHANGE_SANDBOX_CLIENT_KEY`
+   > - `STANDARD_CHANGE_SANDBOX_CLIENT_SECRET`
 * Get the alias or sys_id of your standard change template
   * Existing templates can be found here: [Standard Change Template List](https://it.byu.edu/nav_to.do?uri=%2Fu_standard_change_template_list.do)
 * Estimate how long a deployment should take, in minutes
@@ -30,8 +34,8 @@ jobs:
         uses: byu-oit/github-action-start-standard-change@v1
         id: start-standard-change
         with:
-          client-key: ${{ secrets.CLIENT_KEY }}
-          client-secret: ${{ secrets.CLIENT_SECRET }}
+          client-key: ${{ secrets.STANDARD_CHANGE_SANDBOX_CLIENT_KEY }} # You'll want to use the production secrets in production
+          client-secret: ${{ secrets.STANDARD_CHANGE_SANDBOX_CLIENT_SECRET }}
           template-id: <alias or sys_id of standard change template>
           minutes-until-planned-end: 30 # Optional, defaults to 15
       # Your actual deployment step would go here
@@ -42,8 +46,8 @@ jobs:
         uses: byu-oit/github-action-end-standard-change@v1
         if: ${{ always() && steps.start-standard-change.outcome == 'success' }} # Run if RFC started, even if the deploy failed
         with:
-          client-key: ${{ secrets.CLIENT_KEY }}
-          client-secret: ${{ secrets.CLIENT_SECRET }}
+          client-key: ${{ secrets.STANDARD_CHANGE_SANDBOX_CLIENT_KEY }}
+          client-secret: ${{ secrets.STANDARD_CHANGE_SANDBOX_CLIENT_SECRET }}
           change-sys-id: ${{ steps.start-standard-change.outputs.change-sys-id }}
           work-start: ${{ steps.start-standard-change.outputs.work-start }}
           success: ${{ steps.deploy.outcome == 'success' }}
@@ -72,8 +76,8 @@ jobs:
         uses: byu-oit/github-action-start-standard-change@v1
         id: start-standard-change
         with:
-          client-key: ${{ secrets.CLIENT_KEY }}
-          client-secret: ${{ secrets.CLIENT_SECRET }}
+          client-key: ${{ secrets.STANDARD_CHANGE_SANDBOX_CLIENT_KEY }} # You'll want to use the production secrets in production
+          client-secret: ${{ secrets.STANDARD_CHANGE_SANDBOX_CLIENT_SECRET }}
           template-id: <alias or sys_id of standard change template>
           minutes-until-planned-end: 30 # Optional, defaults to 15
     outputs:
@@ -95,8 +99,8 @@ jobs:
     steps:
       - uses: byu-oit/github-action-end-standard-change@v1
         with:
-          client-key: ${{ secrets.CLIENT_KEY }}
-          client-secret: ${{ secrets.CLIENT_SECRET }}
+          client-key: ${{ secrets.STANDARD_CHANGE_SANDBOX_CLIENT_KEY }}
+          client-secret: ${{ secrets.STANDARD_CHANGE_SANDBOX_CLIENT_SECRET }}
           change-sys-id: ${{ needs.start-standard-change.outputs.change-sys-id }}
           work-start: ${{ needs.start-standard-change.outputs.work-start }}
           success: ${{ needs.deploy.result == 'success' }} # Evaluates to 'true' or 'false'

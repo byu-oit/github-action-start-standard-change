@@ -12,7 +12,7 @@ A GitHub Action for starting standard change RFCs in BYU's ServiceNow system
    > - `STANDARD_CHANGE_SANDBOX_CLIENT_KEY`
    > - `STANDARD_CHANGE_SANDBOX_CLIENT_SECRET`
 * Get the alias or sys_id of your standard change template
-  * Existing templates can be found here: [Standard Change Template List](https://it.byu.edu/nav_to.do?uri=%2Fu_standard_change_template_list.do)
+   >Existing templates can be found here: [Standard Change Template List](https://it.byu.edu/nav_to.do?uri=%2Fu_standard_change_template_list.do)
 * Estimate how long a deployment should take, in minutes
 
 ### Add to your workflow (making replacements as necessary)
@@ -124,4 +124,4 @@ GitHub Actions will run the entry point from the `action.yml`. In our case, that
 
 Actions run from GitHub repos. We don't want to check in `node_modules`. Hence, we package the app using `npm run package`.
 
-Then, be sure to create a new GitHub release, following SemVer.
+Then, push to the corresponding branch, respecting SemVer.

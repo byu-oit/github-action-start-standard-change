@@ -1,4 +1,4 @@
-const { getInput, setOutput, setSecret, setFailed, debug } = require('@actions/core')
+const { getInput, setOutput, setFailed, debug } = require('@actions/core')
 const github = require('@actions/github')
 const wso2 = require('byu-wso2-request')
 

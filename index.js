@@ -35,7 +35,7 @@ async function run () {
       method: 'GET',
       uri: `https://api.byu.edu:443/domains/servicenow/tableapi/v1/table/sys_user?sysparm_query=u_github_username=${githubUsername}&sysparm_fields=user_name`
     }
-    const bodyWithNetId = await wso2.request(optionsToGetNetId).catch(() => wso2.request(optionsToGetNetId)) // Retry once
+    const bodyWithNetId = await requestWithRetry(optionsToGetNetId)
     const netId = bodyWithNetId.result[0].user_name
 
     // Start the RFC
@@ -55,7 +55,7 @@ async function run () {
         ]
       }
     }
-    const bodyWithResultsOfStartingRfc = await wso2.request(optionsToStartRfc).catch(() => wso2.request(optionsToStartRfc)) // Retry once
+    const bodyWithResultsOfStartingRfc = await requestWithRetry(optionsToStartRfc)
     const result = bodyWithResultsOfStartingRfc.result[0]
 
     console.log(`RFC Number: ${result.number}`)
@@ -70,6 +70,10 @@ async function run () {
     setFailed(err.message.replace(wso2TokenRegex, 'REDACTED'))
     process.exit(1)
   }
+}
+
+function requestWithRetry (options) {
+  return wso2.request(options).catch(() => wso2.request(options))
 }
 
 run()

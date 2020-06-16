@@ -25,7 +25,8 @@
   "dependencies": {
     "@actions/core": "^1.2.4",
     "@actions/github": "^2.2.0",
-    "byu-wso2-request": "^3.1.0"
+    "byu-wso2-request": "^3.1.0",
+    "jsonwebtoken": "^8.5.1"
   },
   "devDependencies": {
     "@zeit/ncc": "^0.22.3",

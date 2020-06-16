@@ -13,8 +13,8 @@ jobs:
       uses: ./
       id: start-standard-change
       with:
-        client-key: ${{ secrets.CLIENT_KEY }}
-        client-secret: ${{ secrets.CLIENT_SECRET }}
+        client-key: ${{ secrets.STANDARD_CHANGE_SANDBOX_CLIENT_KEY }}
+        client-secret: ${{ secrets.STANDARD_CHANGE_SANDBOX_CLIENT_SECRET }}
         template-id: ${{ secrets.TEST_TEMPLATE_ID }}
     - name: Deploy
       id: deploy
@@ -23,8 +23,8 @@ jobs:
       if: ${{ always() }}
       run: echo Check env
       env:
-        client-key: ${{ secrets.CLIENT_KEY }}
-        client-secret: ${{ secrets.CLIENT_SECRET }}
+        client-key: ${{ secrets.STANDARD_CHANGE_SANDBOX_CLIENT_KEY }}
+        client-secret: ${{ secrets.STANDARD_CHANGE_SANDBOX_CLIENT_SECRET }}
         change-sys-id: ${{ steps.start-standard-change.outputs.change-sys-id }}
         work-start: ${{ steps.start-standard-change.outputs.work-start }}
         success: ${{ steps.deploy.outcome == 'success' }}

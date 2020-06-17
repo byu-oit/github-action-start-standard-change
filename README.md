@@ -5,7 +5,7 @@ A GitHub Action for starting standard change RFCs in BYU's ServiceNow system
 
 ### Get the inputs
 
-* Get an application in WSO2 that's subscribed to [ServiceNowTableAPI - v1](https://api.byu.edu/store/apis/info?name=ServiceNowTableAPI&version=v1&provider=BYU%2Fthirschi), [StandardChange - v1](https://api.byu.edu/store/apis/info?name=StandardChange&version=v1&provider=BYU%2Fdlb44), and [Change_Request - v1](https://api.byu.edu/store/apis/info?name=Change_Request&version=v1&provider=BYU%2Fthirschi)
+* Get an application in WSO2 that's subscribed to [ServiceNowTableAPI - v1](https://api.byu.edu/store/apis/info?name=ServiceNowTableAPI&version=v1&provider=BYU%2Fthirschi), [StandardChange - v1](https://api.byu.edu/store/apis/info?name=StandardChange&version=v1&provider=BYU%2Fdlb44), [Change_Request - v1](https://api.byu.edu/store/apis/info?name=Change_Request&version=v1&provider=BYU%2Fthirschi), and [Echo - v1](https://api.byu.edu/store/apis/info?name=Echo&version=v1&provider=BYU%2Fbcwinter)
    > In the `byu-oit` GitHub organization, we provide the following secrets to every repo:
    > - `STANDARD_CHANGE_PRODUCTION_CLIENT_KEY`
    > - `STANDARD_CHANGE_PRODUCTION_CLIENT_SECRET`

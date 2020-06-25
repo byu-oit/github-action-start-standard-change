@@ -67,6 +67,10 @@ async function run () {
       console.log('So the link provided below will be for the production environment, even though you may have used sandbox credentials. 🤷')
     }
     const result = bodyWithResultsOfStartingRfc.result[0]
+    if (!result.number) {
+      setFailed('ServiceNow returned a 200, but didn\'t provide an RFC number. Did you provide a valid template ID?')
+      process.exit(1)
+    }
 
     console.log(`RFC Number: ${result.number}`)
     console.log(`Link to RFC: https://${credentialsType === 'PRODUCTION' ? 'it' : 'ittest'}.byu.edu/change_request.do?sysparm_query=number=${result.number}`)

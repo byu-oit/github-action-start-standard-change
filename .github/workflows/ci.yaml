@@ -54,10 +54,10 @@ jobs:
           node-version: ${{ env.node_version }}
 
       - name: npm install
-        run: npm run install
+        run: npm install
 
       - name: npm lint
-        run: npm lint
+        run: npm run lint
 
 # When tests are added to the code uncomment
 #  test-code:

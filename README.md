@@ -1,4 +1,4 @@
-![Build](https://github.com/byu-oit/github-action-start-standard-change/workflows/Build/badge.svg)
+![CI](https://github.com/byu-oit/github-action-start-standard-change/workflows/CI/badge.svg)
 ![Test as a step](https://github.com/byu-oit/github-action-start-standard-change/workflows/Test%20as%20a%20step/badge.svg)
 ![Test as a job](https://github.com/byu-oit/github-action-start-standard-change/workflows/Test%20as%20a%20job/badge.svg)
 

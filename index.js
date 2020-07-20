@@ -1,4 +1,4 @@
-const { getInput, setOutput, setFailed, debug } = require('@actions/core')
+const { getInput, setOutput, setFailed, debug, error } = require('@actions/core')
 const github = require('@actions/github')
 const wso2 = require('byu-wso2-request')
 const jsonWebToken = require('jsonwebtoken')
@@ -31,13 +31,12 @@ async function run () {
     // Some setup required to make calls through WSO2
     await wso2.setOauthSettings(clientKey, clientSecret)
 
-    // Translate GitHub username into Net ID
-    const optionsToGetNetId = {
-      method: 'GET',
-      uri: `https://api.byu.edu:443/domains/servicenow/tableapi/v1/table/sys_user?sysparm_query=u_github_username=${githubUsername}&sysparm_fields=user_name`
-    }
-    const bodyWithNetId = await requestWithRetry(optionsToGetNetId)
-    const netId = bodyWithNetId.result[0].user_name
+    const netId = await getNetIdAssociatedWithGithubUsernameInServicenow(githubUsername).catch(() => {
+      error(`⚠ An error occurred while getting the Net ID associated with your GitHub username.
+Is your GitHub username associated with your profile in ServiceNow?
+You can check by going to https://support.byu.edu/nav_to.do?uri=%2Fsys_user.do%3Fsys_id%3Djavascript:gs.getUserID()%26sysparm_view%3Dess`)
+      process.exit(1)
+    })
 
     // Start the RFC (and figure out if we're doing it in sandbox or production)
     const optionsToStartRfc = {
@@ -95,6 +94,15 @@ async function getTypeOfCredentials () {
   const { Headers: { 'X-Jwt-Assertion': [jwt] } } = await requestWithRetry(options)
   const decoded = jsonWebToken.decode(jwt)
   return decoded['http://wso2.org/claims/keytype'] // 'PRODUCTION' | 'SANDBOX'
+}
+
+async function getNetIdAssociatedWithGithubUsernameInServicenow (githubUsername) {
+  const optionsToGetNetId = {
+    method: 'GET',
+    uri: `https://api.byu.edu:443/domains/servicenow/tableapi/v1/table/sys_user?sysparm_query=u_github_username=${githubUsername}&sysparm_fields=user_name`
+  }
+  const { result: [{ user_name: netId }] } = await requestWithRetry(optionsToGetNetId)
+  return netId
 }
 
 run()

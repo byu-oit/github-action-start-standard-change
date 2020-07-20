@@ -72,7 +72,7 @@ You can check by going to https://support.byu.edu/nav_to.do?uri=%2Fsys_user.do%3
     }
 
     console.log(`RFC Number: ${result.number}`)
-    console.log(`Link to RFC: https://${credentialsType === 'PRODUCTION' ? 'it' : 'ittest'}.byu.edu/change_request.do?sysparm_query=number=${result.number}`)
+    console.log(`Link to RFC: https://${credentialsType === 'PRODUCTION' ? 'support' : 'support-test'}.byu.edu/change_request.do?sysparm_query=number=${result.number}`)
 
     // Set outputs for GitHub Actions
     setOutput('change-sys-id', result.change_sys_id)

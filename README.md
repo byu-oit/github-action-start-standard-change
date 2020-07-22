@@ -48,13 +48,13 @@ jobs:
         run: echo Deploy
       - name: End Standard Change
         uses: byu-oit/github-action-end-standard-change@v1
-        if: ${{ always() && steps.start-standard-change.outcome == 'success' }} # Run if RFC started, even if the deploy failed
+        if: always() && steps.start-standard-change.outcome == 'success' # Run if RFC started, even if the deploy failed
         with:
           client-key: ${{ secrets.STANDARD_CHANGE_SANDBOX_CLIENT_KEY }}
           client-secret: ${{ secrets.STANDARD_CHANGE_SANDBOX_CLIENT_SECRET }}
           change-sys-id: ${{ steps.start-standard-change.outputs.change-sys-id }}
           work-start: ${{ steps.start-standard-change.outputs.work-start }}
-          success: ${{ steps.deploy.outcome == 'success' }}
+          success: ${{ job.status == 'success' }}
 ```
 
 </p>
@@ -63,6 +63,8 @@ jobs:
 <details>
 <summary>In a workflow where the deploy phase is a job, do this...</summary>
 <p>
+
+Have a job with an `id` of `deploy` (or change this example accordingly), then
 
 ```yaml
 on: push
@@ -98,7 +100,7 @@ jobs:
   end-standard-change:
     name: End Standard Change
     needs: [deploy, start-standard-change] # We need to wait on outcome of deploy, and we list start-standard-change so that we can grab its outputs
-    if: ${{ always() && needs.start-standard-change.result == 'success' }} # Run if RFC started, even if the deploy failed
+    if: always() && needs.start-standard-change.result == 'success' # Run if RFC started, even if the deploy failed
     runs-on: ubuntu-latest
     steps:
       - uses: byu-oit/github-action-end-standard-change@v1

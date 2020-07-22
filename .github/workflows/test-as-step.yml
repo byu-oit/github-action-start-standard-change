@@ -20,11 +20,11 @@ jobs:
       id: deploy
       run: exit 0
     - name: Test Outputs
-      if: ${{ always() }}
+      if: always() && steps.start-standard-change.outcome == 'success'
       run: echo Check env
       env:
         client-key: ${{ secrets.STANDARD_CHANGE_SANDBOX_CLIENT_KEY }}
         client-secret: ${{ secrets.STANDARD_CHANGE_SANDBOX_CLIENT_SECRET }}
         change-sys-id: ${{ steps.start-standard-change.outputs.change-sys-id }}
         work-start: ${{ steps.start-standard-change.outputs.work-start }}
-        success: ${{ steps.deploy.outcome == 'success' }}
+        success: ${{ job.status == 'success' }}

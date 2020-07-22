@@ -35,7 +35,7 @@ jobs:
   test-outputs:
     name: Test Outputs
     needs: [deploy, start-standard-change]
-    if: ${{ always() && needs.start-standard-change.result == 'success' }}
+    if: always() && needs.start-standard-change.result == 'success'
     runs-on: ubuntu-latest
     steps:
       - run: echo Check env

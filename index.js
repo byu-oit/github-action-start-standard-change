@@ -31,10 +31,18 @@ async function run () {
     // Some setup required to make calls through WSO2
     await wso2.setOauthSettings(clientKey, clientSecret)
 
+    const credentialsType = await getTypeOfCredentials().catch(() => {
+      console.log('An error occurred while trying to determine if production or sandbox credentials were used for ServiceNow.')
+      console.log('So the link(s) provided below will be for the production environment, even though you may have used sandbox credentials. 🤷')
+      console.log('The standard change will still be started in the correct environment.')
+      return 'PRODUCTION'
+    })
+    const servicenowHost = (credentialsType === 'PRODUCTION') ? 'support.byu.edu' : 'support-test.byu.edu'
+
     const netId = await getNetIdAssociatedWithGithubUsernameInServicenow(githubUsername).catch(() => {
       error(`⚠ An error occurred while getting the Net ID associated with your GitHub username.
 Is your GitHub username associated with your profile in ServiceNow?
-You can check by going to https://support.byu.edu/nav_to.do?uri=%2Fsys_user.do%3Fsys_id%3Djavascript:gs.getUserID()%26sysparm_view%3Dess`)
+You can check by going to https://${servicenowHost}/nav_to.do?uri=%2Fsys_user.do%3Fsys_id%3Djavascript:gs.getUserID()%26sysparm_view%3Dess`)
       process.exit(1)
     })
 
@@ -55,24 +63,17 @@ You can check by going to https://support.byu.edu/nav_to.do?uri=%2Fsys_user.do%3
         ]
       }
     }
-    let errorOccurredWhileGettingCredentialsType = false
-    const [bodyWithResultsOfStartingRfc, credentialsType] = await Promise.all([
-      requestWithRetry(optionsToStartRfc),
-      getTypeOfCredentials().catch(() => { errorOccurredWhileGettingCredentialsType = true; return 'PRODUCTION' })
-    ])
-    if (errorOccurredWhileGettingCredentialsType) {
-      console.log('⚠️ An error occurred while trying to determine if production or sandbox credentials were used for ServiceNow. ⚠️')
-      console.log('The standard change was still started in the correct environment.')
-      console.log('So the link provided below will be for the production environment, even though you may have used sandbox credentials. 🤷')
-    }
+    const bodyWithResultsOfStartingRfc = await requestWithRetry(optionsToStartRfc)
     const result = bodyWithResultsOfStartingRfc.result[0]
     if (!result.number) {
-      setFailed('ServiceNow returned a 200, but didn\'t provide an RFC number. Did you provide a valid template ID?')
+      error(`ServiceNow returned a 200, but didn't provide an RFC number.
+Did you provide a valid template ID?
+You can check by going to https://${servicenowHost}/nav_to.do?uri=%2Fu_standard_change_template_list.do`)
       process.exit(1)
     }
 
     console.log(`RFC Number: ${result.number}`)
-    console.log(`Link to RFC: https://${credentialsType === 'PRODUCTION' ? 'support' : 'support-test'}.byu.edu/change_request.do?sysparm_query=number=${result.number}`)
+    console.log(`Link to RFC: https://${servicenowHost}/change_request.do?sysparm_query=number=${result.number}`)
 
     // Set outputs for GitHub Actions
     setOutput('change-sys-id', result.change_sys_id)

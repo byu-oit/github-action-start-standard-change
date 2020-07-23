@@ -16,7 +16,7 @@ A GitHub Action for starting standard change RFCs in BYU's ServiceNow system
    > - `STANDARD_CHANGE_SANDBOX_CLIENT_KEY`
    > - `STANDARD_CHANGE_SANDBOX_CLIENT_SECRET`
 * Get the alias or sys_id of your standard change template
-   >Existing templates can be found here: [Standard Change Template List](https://it.byu.edu/nav_to.do?uri=%2Fu_standard_change_template_list.do)
+   >Existing templates can be found [here](https://support.byu.edu/nav_to.do?uri=%2Fu_standard_change_template_list.do) in production, or [here](https://support-test.byu.edu/nav_to.do?uri=%2Fu_standard_change_template_list.do) in sandbox
 * Estimate how long a deployment should take, in minutes
 
 ### Add to your workflow (making replacements as necessary)

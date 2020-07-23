@@ -31,13 +31,12 @@ async function run () {
     // Some setup required to make calls through WSO2
     await wso2.setOauthSettings(clientKey, clientSecret)
 
-    let errorOccurredWhileGettingCredentialsType = false
-    const credentialsType = await getTypeOfCredentials().catch(() => { errorOccurredWhileGettingCredentialsType = true; return 'PRODUCTION' })
-    if (errorOccurredWhileGettingCredentialsType) {
-      console.log('⚠️ An error occurred while trying to determine if production or sandbox credentials were used for ServiceNow. ⚠️')
-      console.log('The standard change was still started in the correct environment.')
+    const credentialsType = await getTypeOfCredentials().catch(() => {
+      console.log('An error occurred while trying to determine if production or sandbox credentials were used for ServiceNow.')
       console.log('So the link(s) provided below will be for the production environment, even though you may have used sandbox credentials. 🤷')
-    }
+      console.log('The standard change will still be started in the correct environment.')
+      return 'PRODUCTION'
+    })
     const servicenowHost = (credentialsType === 'PRODUCTION') ? 'support.byu.edu' : 'support-test.byu.edu'
 
     const netId = await getNetIdAssociatedWithGithubUsernameInServicenow(githubUsername).catch(() => {

@@ -2,7 +2,7 @@ name: "Test as a job"
 on:
   push:
     branches:
-      - master
+      - staging
 
 jobs:
   # Build, unit tests, linting, etc.

@@ -2,7 +2,7 @@ name: "Test as a step"
 on:
   push:
     branches:
-      - master
+      - staging
 
 jobs:
   test-as-step:

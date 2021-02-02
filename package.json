@@ -23,13 +23,13 @@
   },
   "homepage": "https://github.com/byu-oit/github-action-start-standard-change#readme",
   "dependencies": {
-    "@actions/core": "^1.2.4",
-    "@actions/github": "^2.2.0",
-    "byu-wso2-request": "^3.1.0",
+    "@actions/core": "^1.2.6",
+    "@actions/github": "^4.0.0",
+    "byu-wso2-request": "^3.1.1",
     "jsonwebtoken": "^8.5.1"
   },
   "devDependencies": {
     "@zeit/ncc": "^0.22.3",
-    "standard": "^14.3.4"
+    "standard": "^16.0.3"
   }
 }

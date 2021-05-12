@@ -1,4 +1,4 @@
-const { getInput, setOutput, setFailed, debug, error } = require('@actions/core')
+const { getInput, setOutput, setFailed, debug, error, warning } = require('@actions/core')
 const github = require('@actions/github')
 const wso2 = require('byu-wso2-request')
 const jsonWebToken = require('jsonwebtoken')
@@ -40,6 +40,12 @@ async function run () {
     const servicenowHost = (credentialsType === 'PRODUCTION') ? 'support.byu.edu' : 'support-test.byu.edu'
 
     const netId = await getNetIdAssociatedWithGithubUsernameInServicenow(githubUsername).catch(() => {
+      const dependabotFallback = getInput('dependabot-fallback')
+      if (payload.pusher.name === 'dependabot[bot]' && dependabotFallback !== '') return dependabotFallback
+      else {
+        warning(`Could not get dependabot-fallback input. This action will fail.
+If you want Dependabot auto-merges to succeed, use that input to define a GitHub username to attach Dependabot changes to.`)
+      }
       error(`⚠ An error occurred while getting the Net ID associated with your GitHub username.
 Is your GitHub username associated with your profile in ServiceNow?
 You can check by going to https://${servicenowHost}/nav_to.do?uri=%2Fsys_user.do%3Fsys_id%3Djavascript:gs.getUserID()%26sysparm_view%3Dess`)

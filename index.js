@@ -44,7 +44,7 @@ async function run () {
       if (dependabotFallback !== '') return dependabotFallback
       else {
         warning(`Could not get dependabot-fallback input. This action will fail.
-If you want Dependabot auto-merges to succeed, use that input to define a GitHub username to attach to Dependabot changes.`)
+If you want Dependabot auto-merges to succeed, use that input to define a GitHub username to attach Dependabot changes to.`)
       }
       error(`⚠ An error occurred while getting the Net ID associated with your GitHub username.
 Is your GitHub username associated with your profile in ServiceNow?

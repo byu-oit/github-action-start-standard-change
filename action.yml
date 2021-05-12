@@ -14,6 +14,9 @@ inputs:
     description: 'The number of minutes from the planned start time to the planned end time.' # We'll plan to start immediately, but when do we plan to end?
     required: false
     default: '15'
+  dependabot-fallback:
+    description: 'The fallback GitHub username to use for standard changes when created by a Dependabot auto-merge.'
+    required: false
 outputs:
   change-sys-id:
     description: 'The ID of the Standard Change RFC (Ex: "7bb66e551bb81c10be7cb992cc4bcb9d")'

@@ -40,6 +40,8 @@ async function run () {
     const servicenowHost = (credentialsType === 'PRODUCTION') ? 'support.byu.edu' : 'support-test.byu.edu'
 
     const netId = await getNetIdAssociatedWithGithubUsernameInServicenow(githubUsername).catch(() => {
+      const fallbackUsername = getInput('fallback-username')
+      if (fallbackUsername !== '') return fallbackUsername
       error(`⚠ An error occurred while getting the Net ID associated with your GitHub username.
 Is your GitHub username associated with your profile in ServiceNow?
 You can check by going to https://${servicenowHost}/nav_to.do?uri=%2Fsys_user.do%3Fsys_id%3Djavascript:gs.getUserID()%26sysparm_view%3Dess`)

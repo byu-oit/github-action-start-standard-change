@@ -41,7 +41,7 @@ async function run () {
 
     const netId = await getNetIdAssociatedWithGithubUsernameInServicenow(githubUsername).catch(() => {
       const dependabotFallback = getInput('dependabot-fallback')
-      if (dependabotFallback !== '') return dependabotFallback
+      if (payload.pusher.name === 'dependabot[bot]' && dependabotFallback !== '') return dependabotFallback
       else {
         warning(`Could not get dependabot-fallback input. This action will fail.
 If you want Dependabot auto-merges to succeed, use that input to define a GitHub username to attach Dependabot changes to.`)

@@ -15,7 +15,7 @@ inputs:
     required: false
     default: '15'
   fallback-username:
-    description: 'The fall back GitHub username to use for standard changes if the one supplied by the event context (i.e. dependabot[bot]) does not exist.'
+    description: 'The fallback GitHub username to use for standard changes if the one supplied by the event context (i.e. dependabot[bot]) does not exist.'
     required: false
 outputs:
   change-sys-id:

@@ -14,8 +14,8 @@ inputs:
     description: 'The number of minutes from the planned start time to the planned end time.' # We'll plan to start immediately, but when do we plan to end?
     required: false
     default: '15'
-  fallback-username:
-    description: 'The fallback GitHub username to use for standard changes if the one supplied by the event context (i.e. dependabot[bot]) does not exist.'
+  dependabot-fallback:
+    description: 'The fallback GitHub username to use for standard changes when created by a Dependabot auto-merge.'
     required: false
 outputs:
   change-sys-id:

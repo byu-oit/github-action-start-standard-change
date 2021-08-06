@@ -1,6 +1,7 @@
 const { getInput, setOutput, setFailed, debug, error, warning } = require('@actions/core')
 const github = require('@actions/github')
 const wso2 = require('byu-wso2-request')
+const { DateTime } = require('luxon')
 const jsonWebToken = require('jsonwebtoken')
 
 async function run () {
@@ -87,7 +88,7 @@ You can check by going to https://${servicenowHost}/nav_to.do?uri=%2Fu_standard_
 
     // Set outputs for GitHub Actions
     setOutput('change-sys-id', result.change_sys_id)
-    setOutput('work-start', result.workStart)
+    setOutput('work-start', convertServicenowTimestampFromMountainToUtc(result.workStart))
     process.exit(0) // Success! For some reason, without this, the action was hanging
   } catch (err) {
     const wso2TokenRegex = /[0-9a-f]{32}/g
@@ -114,6 +115,12 @@ async function getNetIdAssociatedWithGithubUsernameInServicenow (githubUsername)
   }
   const { result: [{ user_name: netId }] } = await requestWithRetry(optionsToGetNetId)
   return netId
+}
+
+function convertServicenowTimestampFromMountainToUtc (timestamp) {
+  return DateTime
+    .fromFormat(timestamp, 'yyyy-LL-dd HH:mm:ss', { zone: 'America/Denver' })
+    .toUTC().toFormat('yyyy-LL-dd HH:mm:ss')
 }
 
 run()

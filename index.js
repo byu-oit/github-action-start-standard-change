@@ -35,10 +35,26 @@ async function run () {
     const credentialsType = await getTypeOfCredentials().catch(() => {
       console.log('An error occurred while trying to determine if production or sandbox credentials were used for ServiceNow.')
       console.log('So the link(s) provided below will be for the production environment, even though you may have used sandbox credentials. 🤷')
-      console.log('The standard change will still be started in the correct environment.')
+      console.log('The standard change will still be started in the correct environment.\n')
       return 'PRODUCTION'
     })
     const servicenowHost = (credentialsType === 'PRODUCTION') ? 'support.byu.edu' : 'support-test.byu.edu'
+
+    const alreadyCreatedRfc = await getRfcIfAlreadyCreated(linkToCommits).catch(() => {
+      warning('An error occurred while trying to determine if an RFC was already created by a previous run of this workflow.')
+      console.log('We will create a new RFC. If there was an existing RFC that failed, it will be your responsibility to update its status as appropriate.\n')
+    })
+    if (alreadyCreatedRfc) {
+      warning('An existing RFC was found!')
+      console.log(`RFC Number: ${alreadyCreatedRfc.number}
+Link to RFC: https://${servicenowHost}/change_request.do?sysparm_query=number=${alreadyCreatedRfc.number}
+Created on: ${alreadyCreatedRfc.sys_created_on}
+Last updated on: ${alreadyCreatedRfc.sys_updated_on}`)
+      // Set outputs for GitHub Actions
+      setOutput('change-sys-id', alreadyCreatedRfc.sys_id)
+      setOutput('work-start', convertServicenowTimestampFromMountainToUtc(alreadyCreatedRfc.work_start))
+      process.exit(0)
+    }
 
     const netId = await getNetIdAssociatedWithGithubUsernameInServicenow(githubUsername).catch(() => {
       const dependabotFallback = getInput('dependabot-fallback')
@@ -47,7 +63,7 @@ async function run () {
           return dependabotFallback
         } else {
           warning(`Could not get dependabot-fallback input. This action will fail.
-If you want Dependabot auto-merges to succeed, use that input to define a GitHub username to attach Dependabot changes to.`)
+If you want Dependabot auto-merges to succeed, use that input to define a GitHub username to attach Dependabot changes to.\n`)
         }
       }
 
@@ -106,6 +122,19 @@ async function getTypeOfCredentials () {
   const { Headers: { 'X-Jwt-Assertion': [jwt] } } = await requestWithRetry(options)
   const decoded = jsonWebToken.decode(jwt)
   return decoded['http://wso2.org/claims/keytype'] // 'PRODUCTION' | 'SANDBOX'
+}
+
+async function getRfcIfAlreadyCreated (linkToCommits) {
+  // linkToCommits includes commit hashes, so it happens to be the best way to identify duplicate RFCs
+  const tableName = 'change_request'
+  const githubBotUsernameInServicenow = 'githubac'
+  const sysparmQuery = `type=standard^sys_created_by=${githubBotUsernameInServicenow}^descriptionLIKE${linkToCommits}` // ^ corresponds to "and", LIKE corresponds to "contains"
+  const options = {
+    method: 'GET',
+    uri: `https://api.byu.edu:443/domains/servicenow/tableapi/v1/table/${tableName}?sysparm_query=${sysparmQuery}`
+  }
+  const { result: [existingRfc] } = await requestWithRetry(options)
+  return existingRfc
 }
 
 async function getNetIdAssociatedWithGithubUsernameInServicenow (githubUsername) {

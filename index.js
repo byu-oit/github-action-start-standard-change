@@ -52,7 +52,7 @@ Created on: ${alreadyCreatedRfc.sys_created_on}
 Last updated on: ${alreadyCreatedRfc.sys_updated_on}`)
       // Set outputs for GitHub Actions
       setOutput('change-sys-id', alreadyCreatedRfc.sys_id)
-      setOutput('work-start', convertServicenowTimestampFromMountainToUtc(alreadyCreatedRfc.work_start))
+      setOutput('work-start', alreadyCreatedRfc.work_start)
       process.exit(0)
     }
 

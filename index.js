@@ -57,8 +57,9 @@ Last updated on: ${alreadyCreatedRfc.sys_updated_on}`)
     }
 
     const netId = await getNetIdAssociatedWithGithubUsernameInServicenow(githubUsername).catch(() => {
-      const dependabotFallback = getInput('dependabot-fallback')
-      if (payload.pusher.name === 'dependabot[bot]') {
+      const isDependabot = (payload.pusher.name === 'dependabot[bot]' || payload.pusher.name === 'dependabot-merge-action[bot]')
+      if (isDependabot) {
+        const dependabotFallback = getInput('dependabot-fallback')
         if (dependabotFallback !== '') {
           return dependabotFallback
         } else {

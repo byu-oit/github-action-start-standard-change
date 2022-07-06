@@ -25,5 +25,5 @@ outputs:
   work-start:
     description: 'The date and time the task was started, in Utah time (Ex: "2020-05-14 17:17:39")'
 runs:
-  using: 'node12'
+  using: 'node16'
   main: 'dist/index.js'

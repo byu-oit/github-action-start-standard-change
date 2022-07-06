@@ -32,7 +32,8 @@ async function run () {
   const description = `Link to commits: ${linkToCommits}\n\nCommit Messages:\n---------------\n${commitMessages.join('\n\n')}`
 
   try {
-    // Some setup required to make calls through WSO2
+    // Some setup required to make calls through Tyk
+    // We don't know if creds passed in for sandbox or production. Trying sandbox first.
     try {
       await wso2.setOauthSettings(clientKey, clientSecret, { host })
       await requestWithRetry({ url: `${host}/echo/v1/echo/test`, simple: true })

@@ -79,7 +79,7 @@ You can check by going to https://${servicenowHost}/nav_to.do?uri=%2Fsys_user.do
       process.exit(1)
     })
 
-    // Start the RFC (and figure out if we're doing it in sandbox or production)
+    // Start the RFC
     const optionsToStartRfc = {
       method: 'PUT',
       uri: `${host}/domains/servicenow/standardchange/v1/change_request`,

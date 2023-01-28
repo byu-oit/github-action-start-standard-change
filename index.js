@@ -2,7 +2,10 @@ const { getInput, setOutput, setFailed, debug, error, warning } = require('@acti
 const github = require('@actions/github')
 const wso2 = require('byu-wso2-request')
 const { DateTime } = require('luxon')
-const jsonWebToken = require('jsonwebtoken')
+
+const PRODUCTION_API_URL = 'https://api.byu.edu'
+const SANDBOX_API_URL = 'https://api-sandbox.byu.edu'
+let host = SANDBOX_API_URL
 
 async function run () {
   // Grab some inputs from GitHub Actions
@@ -29,16 +32,18 @@ async function run () {
   const description = `Link to commits: ${linkToCommits}\n\nCommit Messages:\n---------------\n${commitMessages.join('\n\n')}`
 
   try {
-    // Some setup required to make calls through WSO2
-    await wso2.setOauthSettings(clientKey, clientSecret)
+    // Some setup required to make calls through Tyk
+    // We don't know if creds passed in for sandbox or production. Trying sandbox first.
+    try {
+      await wso2.setOauthSettings(clientKey, clientSecret, { host })
+      await requestWithRetry({ url: `${host}/echo/v1/echo/test`, simple: true })
+    } catch (e) {
+      host = PRODUCTION_API_URL
+      await wso2.setOauthSettings(clientKey, clientSecret, { host })
+      await requestWithRetry({ url: `${host}/echo/v1/echo/test`, simple: true })
+    }
 
-    const credentialsType = await getTypeOfCredentials().catch(() => {
-      console.log('An error occurred while trying to determine if production or sandbox credentials were used for ServiceNow.')
-      console.log('So the link(s) provided below will be for the production environment, even though you may have used sandbox credentials. 🤷')
-      console.log('The standard change will still be started in the correct environment.\n')
-      return 'PRODUCTION'
-    })
-    const servicenowHost = (credentialsType === 'PRODUCTION') ? 'support.byu.edu' : 'support-test.byu.edu'
+    const servicenowHost = (host === PRODUCTION_API_URL) ? 'support.byu.edu' : 'support-test.byu.edu'
 
     const alreadyCreatedRfc = await getRfcIfAlreadyCreated(linkToCommits).catch(() => {
       warning('An error occurred while trying to determine if an RFC was already created by a previous run of this workflow.')
@@ -74,10 +79,10 @@ You can check by going to https://${servicenowHost}/nav_to.do?uri=%2Fsys_user.do
       process.exit(1)
     })
 
-    // Start the RFC (and figure out if we're doing it in sandbox or production)
+    // Start the RFC
     const optionsToStartRfc = {
       method: 'PUT',
-      uri: 'https://api.byu.edu:443/domains/servicenow/standardchange/v1/change_request',
+      uri: `${host}/domains/servicenow/standardchange/v1/change_request`,
       body: {
         changes: [
           {
@@ -118,13 +123,6 @@ function requestWithRetry (options) {
   return wso2.request(options).catch(() => wso2.request(options))
 }
 
-async function getTypeOfCredentials () {
-  const options = { uri: 'https://api.byu.edu:443/echo/v1/echo/test', simple: true }
-  const { Headers: { 'X-Jwt-Assertion': [jwt] } } = await requestWithRetry(options)
-  const decoded = jsonWebToken.decode(jwt)
-  return decoded['http://wso2.org/claims/keytype'] // 'PRODUCTION' | 'SANDBOX'
-}
-
 async function getRfcIfAlreadyCreated (linkToCommits) {
   // linkToCommits includes commit hashes, so it happens to be the best way to identify duplicate RFCs
   const tableName = 'change_request'
@@ -132,7 +130,7 @@ async function getRfcIfAlreadyCreated (linkToCommits) {
   const sysparmQuery = `type=standard^sys_created_by=${githubBotUsernameInServicenow}^descriptionLIKE${linkToCommits}` // ^ corresponds to "and", LIKE corresponds to "contains"
   const options = {
     method: 'GET',
-    uri: `https://api.byu.edu:443/domains/servicenow/tableapi/v1/table/${tableName}?sysparm_query=${sysparmQuery}`
+    uri: `${host}/domains/servicenow/tableapi/v1/table/${tableName}?sysparm_query=${sysparmQuery}`
   }
   const { result: [existingRfc] } = await requestWithRetry(options)
   return existingRfc
@@ -141,7 +139,7 @@ async function getRfcIfAlreadyCreated (linkToCommits) {
 async function getNetIdAssociatedWithGithubUsernameInServicenow (githubUsername) {
   const optionsToGetNetId = {
     method: 'GET',
-    uri: `https://api.byu.edu:443/domains/servicenow/tableapi/v1/table/sys_user?sysparm_query=u_github_username=${githubUsername}&sysparm_fields=user_name`
+    uri: `${host}/domains/servicenow/tableapi/v1/table/sys_user?sysparm_query=u_github_username=${githubUsername}&sysparm_fields=user_name`
   }
   const { result: [{ user_name: netId }] } = await requestWithRetry(optionsToGetNetId)
   return netId

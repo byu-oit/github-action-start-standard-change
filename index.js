@@ -33,9 +33,11 @@ async function run () {
   const commitMessages = payload.commits.map(commit => commit.message)
   const linkToCommits = payload.compare
   const firstLinesOfCommitMessages = commitMessages.map(message => message.split('\n')[0])
+  const runId = github.context.runId
+  const linkToWorkflowRun = `https://github.com/${repoName}/actions/runs/${runId}`
 
   const shortDescription = `${githubUsername} pushed ${numberOfCommits} commit(s) to ${repoName}: ${firstLinesOfCommitMessages.join('; ')}`
-  const description = `Link to commits: ${linkToCommits}\n\nCommit Messages:\n---------------\n${commitMessages.join('\n\n')}`
+  const description = `Link to workflow run: ${linkToWorkflowRun}\nLink to commits: ${linkToCommits}\n\nCommit Messages:\n---------------\n${commitMessages.join('\n\n')}`
 
   try {
     // Some setup required to make calls through Tyk
@@ -51,7 +53,7 @@ async function run () {
 
     const servicenowHost = (host === PRODUCTION_API_URL) ? 'support.byu.edu' : 'support-test.byu.edu'
 
-    const alreadyCreatedRfc = await getRfcIfAlreadyCreated(linkToCommits).catch(() => {
+    const alreadyCreatedRfc = await getRfcIfAlreadyCreated(linkToWorkflowRun).catch(() => {
       warning('An error occurred while trying to determine if an RFC was already created by a previous run of this workflow.')
       console.log('We will create a new RFC. If there was an existing RFC that failed, it will be your responsibility to update its status as appropriate.\n')
     })
@@ -129,11 +131,10 @@ function requestWithRetry (options) {
   return wso2.request(options).catch(() => wso2.request(options))
 }
 
-async function getRfcIfAlreadyCreated (linkToCommits) {
-  // linkToCommits includes commit hashes, so it happens to be the best way to identify duplicate RFCs
+async function getRfcIfAlreadyCreated (linkToWorkflowRun) {
+  // linkToWorkflowRun includes the runId, which is stable between workflow re-runs
   const tableName = 'change_request'
-  const githubBotUsernameInServicenow = 'githubac'
-  const sysparmQuery = `type=standard^sys_created_by=${githubBotUsernameInServicenow}^descriptionLIKE${linkToCommits}` // ^ corresponds to "and", LIKE corresponds to "contains"
+  const sysparmQuery = `type=standard^descriptionLIKE${linkToWorkflowRun}` // ^ corresponds to "and", LIKE corresponds to "contains"
   const options = {
     method: 'GET',
     uri: `${host}/domains/servicenow/tableapi/v1/table/${tableName}?sysparm_query=${sysparmQuery}`

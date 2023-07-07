@@ -8,6 +8,12 @@ const SANDBOX_API_URL = 'https://api-sandbox.byu.edu'
 let host = SANDBOX_API_URL
 
 async function run () {
+  const { context: { eventName } } = github
+  if (eventName !== 'push') {
+    setFailed('Events other than `push` are not supported.')
+    return
+  }
+
   // Grab some inputs from GitHub Actions
   const clientKey = getInput('client-key')
   const clientSecret = getInput('client-secret')

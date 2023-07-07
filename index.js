@@ -9,8 +9,8 @@ let host = SANDBOX_API_URL
 
 async function run () {
   const { context: { eventName } } = github
-  if (eventName !== 'push') {
-    setFailed('Events other than `push` are not supported.')
+  if (!['push', 'schedule', 'workflow_dispatch'].includes(eventName)) {
+    setFailed('Events other than `push`, `schedule`, and `workflow_dispatch` are not supported.')
     return
   }
 
@@ -27,17 +27,21 @@ async function run () {
   // Grab some info about the GitHub commits being pushed
   const payload = github.context.payload
   debug(`The event payload: ${JSON.stringify(payload, undefined, 2)}`)
-  const githubUsername = payload.pusher.name
-  const numberOfCommits = payload.commits.length
+  const githubUsername = payload.pusher?.name ?? payload.sender.login
+  const numberOfCommits = payload.commits?.length ?? 0
   const repoName = payload.repository.full_name
-  const commitMessages = payload.commits.map(commit => commit.message)
+  const commitMessages = payload.commits?.map(commit => commit.message) ?? []
   const linkToCommits = payload.compare
-  const firstLinesOfCommitMessages = commitMessages.map(message => message.split('\n')[0])
+  const firstLinesOfCommitMessages = commitMessages?.map(message => message.split('\n')[0])
   const runId = github.context.runId
   const linkToWorkflowRun = `https://github.com/${repoName}/actions/runs/${runId}`
 
-  const shortDescription = `${githubUsername} pushed ${numberOfCommits} ${numberOfCommits > 1 ? 'commits' : 'commit'} to ${repoName}: ${firstLinesOfCommitMessages.join('; ')}`
-  const description = `Link to workflow run: ${linkToWorkflowRun}\nLink to commits: ${linkToCommits}\n\nCommit Messages:\n---------------\n${commitMessages.join('\n\n')}`
+  const shortDescription = (numberOfCommits.length > 0)
+    ? `${githubUsername} pushed ${numberOfCommits} ${numberOfCommits > 1 ? 'commits' : 'commit'} to ${repoName}: ${firstLinesOfCommitMessages.join('; ')}`
+    : `${githubUsername} ${eventName === 'schedule' ? 'automatically' : 'manually'} redeployed ${repoName}`
+  const description = (numberOfCommits.length > 0)
+    ? `Link to workflow run: ${linkToWorkflowRun}\nLink to commits: ${linkToCommits}\n\nCommit Messages:\n---------------\n${commitMessages.join('\n\n')}`
+    : `Link to workflow run: ${linkToWorkflowRun}`
 
   try {
     // Some setup required to make calls through Tyk
@@ -133,6 +137,7 @@ function requestWithRetry (options) {
 
 async function getRfcIfAlreadyCreated (linkToWorkflowRun) {
   // linkToWorkflowRun includes the runId, which is stable between workflow re-runs
+  // BTW, sequential scheduled runs aren't considered re-runs
   const tableName = 'change_request'
   const sysparmQuery = `type=standard^descriptionLIKE${linkToWorkflowRun}` // ^ corresponds to "and", LIKE corresponds to "contains"
   const options = {

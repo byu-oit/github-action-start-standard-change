@@ -119,8 +119,8 @@ You can check by going to https://${servicenowHost}/nav_to.do?uri=%2Fu_standard_
     setOutput('work-start', convertServicenowTimestampFromMountainToUtc(result.workStart))
     process.exit(0) // Success! For some reason, without this, the action was hanging
   } catch (err) {
-    const wso2TokenRegex = /[0-9a-f]{32}/g
-    setFailed(err.message.replace(wso2TokenRegex, 'REDACTED'))
+    const hydraTokenRegex = /[a-zA-Z0-9]{43}.[a-zA-Z0-9]{43}/g
+    setFailed(err.message.replace(hydraTokenRegex, 'REDACTED'))
     process.exit(1)
   }
 }

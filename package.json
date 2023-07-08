@@ -31,5 +31,10 @@
   "devDependencies": {
     "@vercel/ncc": "^0.36.1",
     "standard": "^17.1.0"
+  },
+  "standard": {
+    "ignore": [
+      "/dist"
+    ]
   }
 }

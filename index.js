@@ -8,6 +8,12 @@ const SANDBOX_API_URL = 'https://api-sandbox.byu.edu'
 let host = SANDBOX_API_URL
 
 async function run () {
+  const { context: { eventName } } = github
+  if (!['push', 'schedule', 'workflow_dispatch'].includes(eventName)) {
+    setFailed('Events other than `push`, `schedule`, and `workflow_dispatch` are not supported.')
+    return
+  }
+
   // Grab some inputs from GitHub Actions
   const clientKey = getInput('client-key')
   const clientSecret = getInput('client-secret')
@@ -21,15 +27,21 @@ async function run () {
   // Grab some info about the GitHub commits being pushed
   const payload = github.context.payload
   debug(`The event payload: ${JSON.stringify(payload, undefined, 2)}`)
-  const githubUsername = payload.pusher.name
-  const numberOfCommits = payload.commits.length
+  const githubUsername = payload.pusher?.name ?? payload.sender.login
+  const numberOfCommits = payload.commits?.length ?? 0
   const repoName = payload.repository.full_name
-  const commitMessages = payload.commits.map(commit => commit.message)
+  const commitMessages = payload.commits?.map(commit => commit.message) ?? []
   const linkToCommits = payload.compare
-  const firstLinesOfCommitMessages = commitMessages.map(message => message.split('\n')[0])
+  const firstLinesOfCommitMessages = commitMessages?.map(message => message.split('\n')[0])
+  const runId = github.context.runId
+  const linkToWorkflowRun = `https://github.com/${repoName}/actions/runs/${runId}`
 
-  const shortDescription = `${githubUsername} pushed ${numberOfCommits} commit(s) to ${repoName}: ${firstLinesOfCommitMessages.join('; ')}`
-  const description = `Link to commits: ${linkToCommits}\n\nCommit Messages:\n---------------\n${commitMessages.join('\n\n')}`
+  const shortDescription = (numberOfCommits.length > 0)
+    ? `${githubUsername} pushed ${numberOfCommits} ${numberOfCommits > 1 ? 'commits' : 'commit'} to ${repoName}: ${firstLinesOfCommitMessages.join('; ')}`
+    : `${githubUsername} ${eventName === 'schedule' ? 'automatically' : 'manually'} redeployed ${repoName}`
+  const description = (numberOfCommits.length > 0)
+    ? `Link to workflow run: ${linkToWorkflowRun}\nLink to commits: ${linkToCommits}\n\nCommit Messages:\n---------------\n${commitMessages.join('\n\n')}`
+    : `Link to workflow run: ${linkToWorkflowRun}`
 
   try {
     // Some setup required to make calls through Tyk
@@ -45,7 +57,7 @@ async function run () {
 
     const servicenowHost = (host === PRODUCTION_API_URL) ? 'support.byu.edu' : 'support-test.byu.edu'
 
-    const alreadyCreatedRfc = await getRfcIfAlreadyCreated(linkToCommits).catch(() => {
+    const alreadyCreatedRfc = await getRfcIfAlreadyCreated(linkToWorkflowRun).catch(() => {
       warning('An error occurred while trying to determine if an RFC was already created by a previous run of this workflow.')
       console.log('We will create a new RFC. If there was an existing RFC that failed, it will be your responsibility to update its status as appropriate.\n')
     })
@@ -113,8 +125,8 @@ You can check by going to https://${servicenowHost}/nav_to.do?uri=%2Fu_standard_
     setOutput('work-start', convertServicenowTimestampFromMountainToUtc(result.workStart))
     process.exit(0) // Success! For some reason, without this, the action was hanging
   } catch (err) {
-    const wso2TokenRegex = /[0-9a-f]{32}/g
-    setFailed(err.message.replace(wso2TokenRegex, 'REDACTED'))
+    const hydraTokenRegex = /[a-zA-Z0-9]{43}.[a-zA-Z0-9]{43}/g
+    setFailed(err.message.replace(hydraTokenRegex, 'REDACTED'))
     process.exit(1)
   }
 }
@@ -123,11 +135,11 @@ function requestWithRetry (options) {
   return wso2.request(options).catch(() => wso2.request(options))
 }
 
-async function getRfcIfAlreadyCreated (linkToCommits) {
-  // linkToCommits includes commit hashes, so it happens to be the best way to identify duplicate RFCs
+async function getRfcIfAlreadyCreated (linkToWorkflowRun) {
+  // linkToWorkflowRun includes the runId, which is stable between workflow re-runs
+  // BTW, sequential scheduled runs aren't considered re-runs
   const tableName = 'change_request'
-  const githubBotUsernameInServicenow = 'githubac'
-  const sysparmQuery = `type=standard^sys_created_by=${githubBotUsernameInServicenow}^descriptionLIKE${linkToCommits}` // ^ corresponds to "and", LIKE corresponds to "contains"
+  const sysparmQuery = `type=standard^descriptionLIKE${linkToWorkflowRun}` // ^ corresponds to "and", LIKE corresponds to "contains"
   const options = {
     method: 'GET',
     uri: `${host}/domains/servicenow/tableapi/v1/table/${tableName}?sysparm_query=${sysparmQuery}`

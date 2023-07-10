@@ -36,10 +36,10 @@ async function run () {
   const runId = github.context.runId
   const linkToWorkflowRun = `https://github.com/${repoName}/actions/runs/${runId}`
 
-  const shortDescription = (numberOfCommits.length > 0)
-    ? `${githubUsername} pushed ${numberOfCommits} ${numberOfCommits > 1 ? 'commits' : 'commit'} to ${repoName}: ${firstLinesOfCommitMessages.join('; ')}`
+  const shortDescription = (eventName === 'push')
+    ? `${githubUsername} pushed ${numberOfCommits} ${numberOfCommits === 1 ? 'commit' : 'commits'} to ${repoName}: ${firstLinesOfCommitMessages.join('; ')}`
     : `${githubUsername} ${eventName === 'schedule' ? 'automatically' : 'manually'} redeployed ${repoName}`
-  const description = (numberOfCommits.length > 0)
+  const description = (eventName === 'push')
     ? `Link to workflow run: ${linkToWorkflowRun}\nLink to commits: ${linkToCommits}\n\nCommit Messages:\n---------------\n${commitMessages.join('\n\n')}`
     : `Link to workflow run: ${linkToWorkflowRun}`
 

@@ -32,16 +32,22 @@ async function run () {
   const repoName = payload.repository.full_name
   const commitMessages = payload.commits?.map(commit => commit.message) ?? []
   const linkToCommits = payload.compare
-  const firstLinesOfCommitMessages = commitMessages?.map(message => message.split('\n')[0])
+  const firstLinesOfCommitMessagesWithoutAnyMerges = commitMessages.map(message => message.split('\n')[0])
+    .filter(message => !isMergeCommitMessage(message))
   const runId = github.context.runId
   const linkToWorkflowRun = `https://github.com/${repoName}/actions/runs/${runId}`
 
-  const shortDescription = (eventName === 'push')
-    ? `${githubUsername} pushed ${numberOfCommits} ${numberOfCommits === 1 ? 'commit' : 'commits'} to ${repoName}: ${firstLinesOfCommitMessages.join('; ')}`
-    : `${githubUsername} ${eventName === 'schedule' ? 'automatically' : 'manually'} redeployed ${repoName}`
-  const description = (eventName === 'push')
-    ? `Link to workflow run: ${linkToWorkflowRun}\nLink to commits: ${linkToCommits}\n\nCommit Messages:\n---------------\n${commitMessages.join('\n\n')}`
-    : `Link to workflow run: ${linkToWorkflowRun}`
+  const shortDescription = (eventName === 'push' && numberOfCommits > 0)
+    ? `${repoName}: ${firstLinesOfCommitMessagesWithoutAnyMerges.join('; ')}`
+    : `${repoName}: ${eventName === 'schedule' ? 'Automatic' : 'Manual'} redeploy`
+
+  let description = `GitHub Actions workflow: ${linkToWorkflowRun}`
+  if (eventName === 'push') {
+    description += `\n${githubUsername} pushed ${numberOfCommits} ${numberOfCommits === 1 ? 'commit' : 'commits'}: ${linkToCommits}`
+    if (numberOfCommits > 0) {
+      description += `\n\nCommit messages:\n• ${commitMessages.join('\n• ')}`
+    }
+  }
 
   try {
     // Some setup required to make calls through Tyk
@@ -161,6 +167,12 @@ function convertServicenowTimestampFromMountainToUtc (timestamp) {
   return DateTime
     .fromFormat(timestamp, 'yyyy-LL-dd HH:mm:ss', { zone: 'America/Denver' })
     .toUTC().toFormat('yyyy-LL-dd HH:mm:ss')
+}
+
+const pullRequestMergeCommitRegex = /^Merge pull request #\d+ from \S+/
+const branchMergeCommitRegex = /^Merge branch \S+( of https:\/\/github\.com\/\S+ )? into \S+/
+function isMergeCommitMessage (message) {
+  return message.match(pullRequestMergeCommitRegex) || message.match(branchMergeCommitRegex)
 }
 
 run()

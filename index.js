@@ -32,13 +32,16 @@ async function run () {
   const repoName = payload.repository.full_name
   const commitMessages = payload.commits?.map(commit => commit.message) ?? []
   const linkToCommits = payload.compare
-  const firstLinesOfCommitMessagesWithoutAnyMerges = commitMessages.map(message => message.split('\n')[0])
-    .filter(message => !isMergeCommitMessage(message))
+  const deduplicatedFirstLinesOfCommitMessagesWithoutAnyMerges = [...new Set( // Deduplicate
+    commitMessages
+      .map(message => message.split('\n')[0]) // Get first line
+      .filter(message => !isMergeCommitMessage(message)) // Filter out merge commits
+  )]
   const runId = github.context.runId
   const linkToWorkflowRun = `https://github.com/${repoName}/actions/runs/${runId}`
 
   const shortDescription = (eventName === 'push' && numberOfCommits > 0)
-    ? `${repoName}: ${firstLinesOfCommitMessagesWithoutAnyMerges.join('; ')}`
+    ? `${repoName}: ${deduplicatedFirstLinesOfCommitMessagesWithoutAnyMerges.join('; ')}`
     : `${repoName}: ${eventName === 'schedule' ? 'Automatic' : 'Manual'} redeploy`
 
   let description = `GitHub Actions workflow: ${linkToWorkflowRun}`

@@ -4,7 +4,7 @@
   "description": "BYU ServiceNow - Start Standard Change RFC",
   "main": "index.js",
   "scripts": {
-    "lint": "npx standard index.js",
+    "lint": "npx standard",
     "package": "npx ncc build index.js -m -o dist",
     "test": "npx jest"
   },

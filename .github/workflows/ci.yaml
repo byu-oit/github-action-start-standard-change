@@ -1,4 +1,5 @@
 name: CI
+
 on:
   pull_request:
   push:
@@ -7,6 +8,7 @@ on:
       - 'v*'
 env:
   node_version: "16.x"
+  FORCE_COLOR: 3
 
 jobs:
   build: # make sure build/ci work properly
@@ -19,11 +21,16 @@ jobs:
         with:
           node-version: ${{ env.node_version }}
 
-      - name: npm install
-        run: npm install
+      - name: npm ci
+        run: npm ci --prefer-offline
 
-      - name: npm run pack
+      - name: npm run package
         run: npm run package
+
+      - name: Check for any changed files
+        run: |
+          [[ -z $(git status --untracked-files=no --porcelain) ]] || \
+            (echo "::error title=npm run package::Files in the /dist directory shouldn't have changed. You forgot to run 'npm run package'." && exit 1)
 
   audit:
     name: Audit
@@ -35,6 +42,8 @@ jobs:
         uses: actions/setup-node@v3
         with:
           node-version: ${{ env.node_version }}
+
+      # We don't need to install deps to audit them
 
       - name: npm audit
         run: npm audit --audit-level=critical
@@ -49,27 +58,33 @@ jobs:
         uses: actions/setup-node@v3
         with:
           node-version: ${{ env.node_version }}
+          cache: npm
+          cache-dependency-path: '**/package-lock.json'
 
-      - name: npm install
-        run: npm install
+      - name: npm ci
+        run: npm ci --prefer-offline
 
       - name: npm lint
         run: npm run lint
 
-# When tests are added to the code uncomment
-#  test-code:
-#    name: Test
-#    runs-on: ubuntu-latest
-#    steps:
-#      - uses: actions/checkout@v3
-#
-#      - name: Set up Node.js
-#        uses: actions/setup-node@v3
-#        with:
-#          node-version: ${{ env.node_version }}
-#
-#      - name: npm install
-#        run: npm install
-#
-#      - name: npm test
-#        run: npm test
+  test:
+    name: Test
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v3
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v3
+        with:
+          node-version: ${{ env.node_version }}
+          cache: npm
+          cache-dependency-path: '**/package-lock.json'
+
+      - name: npm ci
+        run: npm ci --prefer-offline
+
+      - name: npm test
+        run: npm test
+
+      - name: Report test coverage to Codecov
+        uses: codecov/codecov-action@v3

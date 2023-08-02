@@ -2,6 +2,7 @@ const { getInput, setOutput, setFailed, debug, error, warning } = require('@acti
 const github = require('@actions/github')
 const wso2 = require('byu-wso2-request')
 const { DateTime } = require('luxon')
+const { isMergeCommitMessage } = require('utils.js')
 
 const PRODUCTION_API_URL = 'https://api.byu.edu'
 const SANDBOX_API_URL = 'https://api-sandbox.byu.edu'
@@ -20,7 +21,7 @@ async function run () {
   const templateId = getInput('template-id')
   const minutesUntilPlannedEnd = parseInt(getInput('minutes-until-planned-end'), 10)
   if (!clientKey || !clientSecret || !templateId) {
-    setFailed('Missing a required input')
+    setFailed('Missing a required input.')
     return
   }
 
@@ -170,12 +171,6 @@ function convertServicenowTimestampFromMountainToUtc (timestamp) {
   return DateTime
     .fromFormat(timestamp, 'yyyy-LL-dd HH:mm:ss', { zone: 'America/Denver' })
     .toUTC().toFormat('yyyy-LL-dd HH:mm:ss')
-}
-
-const pullRequestMergeCommitRegex = /^Merge pull request #\d+ from \S+/
-const branchMergeCommitRegex = /^Merge branch \S+( of https:\/\/github\.com\/\S+ )? into \S+/
-function isMergeCommitMessage (message) {
-  return message.match(pullRequestMergeCommitRegex) || message.match(branchMergeCommitRegex)
 }
 
 run()

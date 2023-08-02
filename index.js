@@ -21,7 +21,7 @@ async function run () {
   const templateId = getInput('template-id')
   const minutesUntilPlannedEnd = parseInt(getInput('minutes-until-planned-end'), 10)
   if (!clientKey || !clientSecret || !templateId) {
-    setFailed('Missing a required input')
+    setFailed('Missing a required input.')
     return
   }
 

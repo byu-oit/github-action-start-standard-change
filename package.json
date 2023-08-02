@@ -6,7 +6,7 @@
   "scripts": {
     "lint": "npx standard index.js",
     "package": "npx ncc build index.js -m -o dist",
-    "test": "node --test"
+    "test": "npx jest"
   },
   "repository": {
     "type": "git",
@@ -27,13 +27,29 @@
     "@actions/core": "^1.10.0",
     "@actions/github": "^5.1.1",
     "byu-wso2-request": "^3.3.3",
+    "jest": "^29.6.2",
     "luxon": "^3.3.0"
   },
   "devDependencies": {
     "@vercel/ncc": "^0.36.1",
     "standard": "^17.1.0"
   },
+  "jest": {
+    "collectCoverage": true,
+    "coverageDirectory": "coverage",
+    "coverageReporters": [
+      "lcov",
+      "text"
+    ],
+    "passWithNoTests": true,
+    "testEnvironment": "node",
+    "verbose": true
+  },
   "standard": {
+    "env": [
+      "jest",
+      "node"
+    ],
     "ignore": [
       "/dist"
     ]

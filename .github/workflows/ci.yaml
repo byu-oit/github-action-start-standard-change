@@ -24,13 +24,13 @@ jobs:
       - name: npm ci
         run: npm ci --prefer-offline
 
-      - name: npm run pack
+      - name: npm run package
         run: npm run package
 
       - name: Check for any changed files
         run: |
           [[ -z $(git status --untracked-files=no --porcelain) ]] || \
-            (echo "::error title=npm run package::Files in the /dist directory should have changed. You forgot to run 'npm run package'." && exit 1)
+            (echo "::error title=npm run package::Files in the /dist directory shouldn't have changed. You forgot to run 'npm run package'." && exit 1)
 
   audit:
     name: Audit

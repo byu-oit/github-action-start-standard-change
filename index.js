@@ -2,7 +2,7 @@ const { getInput, setOutput, setFailed, debug, error, warning } = require('@acti
 const github = require('@actions/github')
 const wso2 = require('byu-wso2-request')
 const { DateTime } = require('luxon')
-const { isMergeCommitMessage } = require('utils.js')
+const { isMergeCommitMessage } = require('./utils.js')
 
 const PRODUCTION_API_URL = 'https://api.byu.edu'
 const SANDBOX_API_URL = 'https://api-sandbox.byu.edu'

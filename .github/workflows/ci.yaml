@@ -56,20 +56,19 @@ jobs:
       - name: npm lint
         run: npm run lint
 
-# When tests are added to the code uncomment
-#  test-code:
-#    name: Test
-#    runs-on: ubuntu-latest
-#    steps:
-#      - uses: actions/checkout@v3
-#
-#      - name: Set up Node.js
-#        uses: actions/setup-node@v3
-#        with:
-#          node-version: ${{ env.node_version }}
-#
-#      - name: npm install
-#        run: npm install
-#
-#      - name: npm test
-#        run: npm test
+  test:
+    name: Test
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v3
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v3
+        with:
+          node-version: ${{ env.node_version }}
+
+      - name: npm install
+        run: npm install
+
+      - name: npm test
+        run: npm test

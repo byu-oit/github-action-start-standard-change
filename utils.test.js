@@ -7,7 +7,9 @@ describe('isMergeCommitMessage', () => {
       'Merge branch dev into prd',
       'Merge branch \'idHash\' of https://github.com/byu-oit/ces-adm-sv-recommendations into idHash',
       'Merge remote-tracking branch \'origin/dev\' into jacobs27',
-      'Merge pull request #1078 from byu-oit/dev'
+      'Merge pull request #1078 from byu-oit/dev',
+      'Merge pull request #327',
+      'Merge branch \'dev\''
     ]
     for (const message of mergeCommits) {
       test(message, () => {

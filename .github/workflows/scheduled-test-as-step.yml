@@ -1,0 +1,31 @@
+name: "Test as a step"
+on:
+  push:
+    branches:
+      - staging
+  schedule:
+    - cron: '0 16 16 10 *'
+jobs:
+  test-as-step:
+    runs-on: ubuntu-latest
+    steps:
+    - uses: actions/checkout@v3
+    - name: Start Standard Change
+      uses: ./
+      id: start-standard-change
+      with:
+        client-key: ${{ secrets.STANDARD_CHANGE_SANDBOX_CLIENT_KEY }}
+        client-secret: ${{ secrets.STANDARD_CHANGE_SANDBOX_CLIENT_SECRET }}
+        template-id: ${{ secrets.TEST_TEMPLATE_ID }}
+    - name: Deploy
+      id: deploy
+      run: exit 0
+    - name: Test Outputs
+      if: always() && steps.start-standard-change.outcome == 'success'
+      run: echo Check env
+      env:
+        client-key: ${{ secrets.STANDARD_CHANGE_SANDBOX_CLIENT_KEY }}
+        client-secret: ${{ secrets.STANDARD_CHANGE_SANDBOX_CLIENT_SECRET }}
+        change-sys-id: ${{ steps.start-standard-change.outputs.change-sys-id }}
+        work-start: ${{ steps.start-standard-change.outputs.work-start }}
+        success: ${{ job.status == 'success' }}

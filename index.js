@@ -83,18 +83,7 @@ Last updated on: ${alreadyCreatedRfc.sys_updated_on}`)
       process.exit(0)
     }
 
-    const netId = await getNetIdAssociatedWithGithubUsernameInServicenow(githubUsername).catch(() => {
-      const isDependabot = (payload.pusher.name === 'dependabot[bot]' || payload.pusher.name === 'dependabot-merge-action[bot]')
-      if (isDependabot) {
-        const dependabotFallback = getInput('dependabot-fallback')
-        if (dependabotFallback !== '') {
-          return dependabotFallback
-        } else {
-          warning(`Could not get dependabot-fallback input. This action will fail.
-If you want Dependabot auto-merges to succeed, use that input to define a GitHub username to attach Dependabot changes to.\n`)
-        }
-      }
-
+    const netId = await determineNetIdToAttributeRfc(githubUsername, templateId).catch(() => {
       error(`⚠ An error occurred while getting the Net ID associated with your GitHub username.
 Is your GitHub username associated with your profile in ServiceNow?
 You can check by going to https://${servicenowHost}/nav_to.do?uri=%2Fsys_user.do%3Fsys_id%3Djavascript:gs.getUserID()%26sysparm_view%3Dess`)
@@ -156,6 +145,34 @@ async function getRfcIfAlreadyCreated (linkToWorkflowRun) {
   }
   const { result: [existingRfc] } = await requestWithRetry(options)
   return existingRfc
+}
+
+async function determineNetIdToAttributeRfc (githubUsername, templateId) {
+  // If this is some automated change (e.g. on a schedule or from Dependabot)
+  const isAutomation = (githubUsername === 'byu-oit-bot' || githubUsername === 'github-actions[bot]')
+  const isDependabot = (githubUsername === 'dependabot[bot]' || githubUsername === 'dependabot-merge-action[bot]')
+  if (isAutomation || isDependabot) {
+    // If dependabot-fallback input is provided, attribute the change to that Net ID
+    const dependabotFallback = getInput('dependabot-fallback')
+    if (dependabotFallback !== '') {
+      return dependabotFallback
+    }
+
+    // Otherwise, if an application-specific standard change template was specified (i.e., not the generic one baked into our template repos),
+    // attribute the change to our GitHub Actions bot user in ServiceNow. A useful template is required so that Ops still knows who to contact
+    // if something goes wrong with the change.
+    const genericTemplateInUse = (templateId === 'Codepipeline-Standard-Change')
+    if (!genericTemplateInUse) {
+      return 'githubac'
+    }
+
+    warning(`This change appears to have been made by a robot. Ops needs to know who to contact if something goes wrong.
+You have two options to fix this:
+    1) Use a more specific standard change template.
+    2) Blame a human for this change by providing a Net ID in the dependabot-fallback input.\n`)
+  }
+
+  return getNetIdAssociatedWithGithubUsernameInServicenow(githubUsername)
 }
 
 async function getNetIdAssociatedWithGithubUsernameInServicenow (githubUsername) {

@@ -15,7 +15,7 @@ inputs:
     required: false
     default: '15'
   dependabot-fallback:
-    description: 'The fallback GitHub username to use for standard changes when created by a Dependabot auto-merge.'
+    description: 'The Net ID to assign changes to when robots make changes (e.g., on a Dependabot auto-merge).'
     required: false
 outputs:
   change-sys-id:

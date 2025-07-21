@@ -19,10 +19,16 @@ async function run () {
   const clientKey = getInput('client-key')
   const clientSecret = getInput('client-secret')
   const templateId = getInput('template-id')
+  let appEnv = getInput('app-env')
   const minutesUntilPlannedEnd = parseInt(getInput('minutes-until-planned-end'), 10)
   if (!clientKey || !clientSecret || !templateId) {
     setFailed('Missing a required input.')
     return
+  }
+
+  if (!applicationEnvironment) {
+    warning('Application environment defaulting to dev.')
+    appEnv = 'dev'
   }
 
   // Grab some info about the GitHub commits being pushed
@@ -56,16 +62,26 @@ async function run () {
   try {
     // Some setup required to make calls through Tyk
     // We don't know if creds passed in for sandbox or production. Trying sandbox first.
-    try {
-      await wso2.setOauthSettings(clientKey, clientSecret, { host })
-      await requestWithRetry({ url: `${host}/echo/v1/echo/test`, simple: true })
-    } catch (e) {
-      host = PRODUCTION_API_URL
-      await wso2.setOauthSettings(clientKey, clientSecret, { host })
-      await requestWithRetry({ url: `${host}/echo/v1/echo/test`, simple: true })
+    if (appEnv === 'prd' || appEnv === 'production') {
+      try {
+        host = PRODUCTION_API_URL
+        await wso2.setOauthSettings(clientKey, clientSecret, { host })
+        await requestWithRetry({ url: `${host}/echo/v1/echo/test`, simple: true })
+      } catch (e) {
+        setFailed('Error while checking production ServiceNow credentials.')
+        console.log('Auth credentials calls failed. Check OAuth credentials and/or application environment.')
+      }
+    } else {
+      try {
+        await wso2.setOauthSettings(clientKey, clientSecret, { host })
+        await requestWithRetry({ url: `${host}/echo/v1/echo/test`, simple: true })
+      } catch (e) {
+        warning('Error while checking dev ServiceNow credentials')
+        console.log('Auth credentials calls failed. Check OAuth credentials and/or application environment.')
+      }
     }
 
-    const servicenowHost = (host === PRODUCTION_API_URL) ? 'support.byu.edu' : 'support-test.byu.edu'
+    const servicenowHost = (appEnv === 'prd' || appEnv === 'production') ? 'support.byu.edu' : 'support-test.byu.edu'
 
     const alreadyCreatedRfc = await getRfcIfAlreadyCreated(linkToWorkflowRun).catch(() => {
       warning('An error occurred while trying to determine if an RFC was already created by a previous run of this workflow.')

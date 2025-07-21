@@ -26,7 +26,7 @@ async function run () {
     return
   }
 
-  if (!applicationEnvironment) {
+  if (!appEnv) {
     warning('Application environment defaulting to dev.')
     appEnv = 'dev'
   }

@@ -35,7 +35,6 @@ jobs:
   audit:
     name: Audit
     runs-on: ubuntu-latest
-    continue-on-error: true
     steps:
       - uses: actions/checkout@v4
 
@@ -47,6 +46,7 @@ jobs:
       # We don't need to install deps to audit them
 
       - name: npm audit
+        continue-on-error: true
         run: npm audit --audit-level=critical
 
   lint:

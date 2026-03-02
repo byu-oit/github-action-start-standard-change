@@ -18,6 +18,8 @@ A GitHub Action for starting standard change RFCs in BYU's ServiceNow system
 * Get the alias or sys_id of your standard change template
    >Existing templates can be found [here](https://support.byu.edu/nav_to.do?uri=%2Fu_standard_change_template_list.do) in production, or [here](https://support-test.byu.edu/nav_to.do?uri=%2Fu_standard_change_template_list.do) in sandbox
 * Estimate how long a deployment should take, in minutes
+* Decide whether to create RFCs in sandbox
+   >By default this action is a no-op in non-production when sandbox credentials are used. Set `run-in-non-production: true` to override.
 
 ### Add to your workflow (making replacements as necessary)
 
@@ -42,13 +44,14 @@ jobs:
           client-secret: ${{ secrets.STANDARD_CHANGE_SANDBOX_CLIENT_SECRET }}
           template-id: <alias or sys_id of standard change template>
           minutes-until-planned-end: 30 # Optional, defaults to 15
+          run-in-non-production: false # Optional, defaults to false (no-op in sandbox/non-production)
       # Your actual deployment step would go here
       - name: Deploy
         id: deploy
         run: echo Deploy
       - name: End Standard Change
         uses: byu-oit/github-action-end-standard-change@v1
-        if: always() && steps.start-standard-change.outcome == 'success' # Run if RFC started, even if the deploy failed
+        if: always() && steps.start-standard-change.outputs.rfc-started == 'true' # Run only when an RFC was started/reused
         with:
           client-key: ${{ secrets.STANDARD_CHANGE_SANDBOX_CLIENT_KEY }}
           client-secret: ${{ secrets.STANDARD_CHANGE_SANDBOX_CLIENT_SECRET }}
@@ -86,7 +89,9 @@ jobs:
           client-secret: ${{ secrets.STANDARD_CHANGE_SANDBOX_CLIENT_SECRET }}
           template-id: <alias or sys_id of standard change template>
           minutes-until-planned-end: 30 # Optional, defaults to 15
+          run-in-non-production: false # Optional, defaults to false (no-op in sandbox/non-production)
     outputs:
+      rfc-started: ${{ steps.start-standard-change.outputs.rfc-started }}
       change-sys-id: ${{ steps.start-standard-change.outputs.change-sys-id }}
       work-start: ${{ steps.start-standard-change.outputs.work-start }}
 
@@ -100,7 +105,7 @@ jobs:
   end-standard-change:
     name: End Standard Change
     needs: [deploy, start-standard-change] # We need to wait on outcome of deploy, and we list start-standard-change so that we can grab its outputs
-    if: always() && needs.start-standard-change.result == 'success' # Run if RFC started, even if the deploy failed
+    if: always() && needs.start-standard-change.outputs.rfc-started == 'true' # Run only when an RFC was started/reused
     runs-on: ubuntu-latest
     steps:
       - uses: byu-oit/github-action-end-standard-change@v1

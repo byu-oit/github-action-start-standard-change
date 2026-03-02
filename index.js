@@ -1,4 +1,4 @@
-const { getInput, setOutput, setFailed, debug, error, warning } = require('@actions/core')
+const { getInput, setOutput, setFailed, debug, info, error, warning } = require('@actions/core')
 const github = require('@actions/github')
 const wso2 = require('byu-wso2-request')
 const { DateTime } = require('luxon')
@@ -20,6 +20,7 @@ async function run () {
   const clientSecret = getInput('client-secret')
   const templateId = getInput('template-id')
   const minutesUntilPlannedEnd = parseInt(getInput('minutes-until-planned-end'), 10)
+  const runInNonProduction = parseBooleanInput(getInput('run-in-non-production') || 'false')
   if (!clientKey || !clientSecret || !templateId) {
     setFailed('Missing a required input.')
     return
@@ -28,7 +29,7 @@ async function run () {
   // Grab some info about the GitHub commits being pushed
   const payload = github.context.payload
   debug(`The event payload: ${JSON.stringify(payload, undefined, 2)}`)
-  const githubUsername = payload.pusher?.name ?? payload.sender.login
+  const githubUsername = payload.pusher?.name ?? payload.sender?.login ?? github.context.actor ?? 'github-actions[bot]'
   const numberOfCommits = payload.commits?.length ?? 0
   const repoName = payload.repository.full_name
   const commitMessages = payload.commits?.map(commit => commit.message) ?? []
@@ -54,30 +55,33 @@ async function run () {
   }
 
   try {
-    // Some setup required to make calls through Tyk
-    // We don't know if creds passed in for sandbox or production. Trying sandbox first.
-    try {
-      await wso2.setOauthSettings(clientKey, clientSecret, { host })
-      await requestWithRetry({ url: `${host}/echo/v1/echo/test`, simple: true })
-    } catch (e) {
-      host = PRODUCTION_API_URL
-      await wso2.setOauthSettings(clientKey, clientSecret, { host })
-      await requestWithRetry({ url: `${host}/echo/v1/echo/test`, simple: true })
-    }
+    host = await resolveApiHost(clientKey, clientSecret)
 
     const servicenowHost = (host === PRODUCTION_API_URL) ? 'support.byu.edu' : 'support-test.byu.edu'
 
+    if (host !== PRODUCTION_API_URL && !runInNonProduction) {
+      const skipMessage = 'Skipping Standard Change RFC creation because this appears to be a non-production deployment. Set run-in-non-production to true if you want to create RFCs in sandbox.'
+      warning(skipMessage)
+      setOutput('rfc-started', 'false')
+      setOutput('rfc-number', '')
+      setOutput('change-sys-id', '')
+      setOutput('work-start', '')
+      process.exit(0)
+    }
+
     const alreadyCreatedRfc = await getRfcIfAlreadyCreated(linkToWorkflowRun).catch(() => {
       warning('An error occurred while trying to determine if an RFC was already created by a previous run of this workflow.')
-      console.log('We will create a new RFC. If there was an existing RFC that failed, it will be your responsibility to update its status as appropriate.\n')
+      info('We will create a new RFC. If there was an existing RFC that failed, it will be your responsibility to update its status as appropriate.')
     })
     if (alreadyCreatedRfc) {
       warning('An existing RFC was found!')
-      console.log(`RFC Number: ${alreadyCreatedRfc.number}
+      info(`RFC Number: ${alreadyCreatedRfc.number}
 Link to RFC: https://${servicenowHost}/change_request.do?sysparm_query=number=${alreadyCreatedRfc.number}
 Created on: ${alreadyCreatedRfc.sys_created_on}
 Last updated on: ${alreadyCreatedRfc.sys_updated_on}`)
       // Set outputs for GitHub Actions
+      setOutput('rfc-started', 'true')
+      setOutput('rfc-number', alreadyCreatedRfc.number)
       setOutput('change-sys-id', alreadyCreatedRfc.sys_id)
       setOutput('work-start', alreadyCreatedRfc.work_start)
       process.exit(0)
@@ -116,10 +120,12 @@ You can check by going to https://${servicenowHost}/nav_to.do?uri=%2Fu_standard_
       process.exit(1)
     }
 
-    console.log(`RFC Number: ${result.number}`)
-    console.log(`Link to RFC: https://${servicenowHost}/change_request.do?sysparm_query=number=${result.number}`)
+    info(`RFC Number: ${result.number}`)
+    info(`Link to RFC: https://${servicenowHost}/change_request.do?sysparm_query=number=${result.number}`)
 
     // Set outputs for GitHub Actions
+    setOutput('rfc-started', 'true')
+    setOutput('rfc-number', result.number)
     setOutput('change-sys-id', result.change_sys_id)
     setOutput('work-start', convertServicenowTimestampFromMountainToUtc(result.workStart))
     process.exit(0) // Success! For some reason, without this, the action was hanging
@@ -132,6 +138,29 @@ You can check by going to https://${servicenowHost}/nav_to.do?uri=%2Fu_standard_
 
 function requestWithRetry (options) {
   return wso2.request(options).catch(() => wso2.request(options))
+}
+
+async function resolveApiHost (clientKey, clientSecret) {
+  const hostsToTry = [SANDBOX_API_URL, PRODUCTION_API_URL]
+  for (const candidateHost of hostsToTry) {
+    try {
+      await wso2.setOauthSettings(clientKey, clientSecret, { host: candidateHost })
+      await requestWithRetry({
+        method: 'GET',
+        uri: `${candidateHost}/domains/servicenow/tableapi/v1/table/sys_user?sysparm_fields=sys_id&sysparm_limit=1`
+      })
+      return candidateHost
+    } catch (e) {
+      debug(`Could not authenticate against ${candidateHost}`)
+    }
+  }
+
+  throw new Error('Unable to authenticate with BYU sandbox or production API hosts.')
+}
+
+function parseBooleanInput (inputValue) {
+  const normalizedValue = String(inputValue).trim().toLowerCase()
+  return ['1', 'true', 'yes', 'y', 'on'].includes(normalizedValue)
 }
 
 async function getRfcIfAlreadyCreated (linkToWorkflowRun) {

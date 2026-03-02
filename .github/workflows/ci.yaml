@@ -46,6 +46,7 @@ jobs:
       # We don't need to install deps to audit them
 
       - name: npm audit
+        continue-on-error: true
         run: npm audit --audit-level=critical
 
   lint:

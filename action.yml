@@ -14,10 +14,16 @@ inputs:
     description: 'The number of minutes from the planned start time to the planned end time.' # We'll plan to start immediately, but when do we plan to end?
     required: false
     default: '15'
+  run-in-non-production:
+    description: 'Whether to create an RFC in non-production (sandbox). Defaults to false, which makes this action a no-op in non-production.'
+    required: false
+    default: 'false'
   dependabot-fallback:
     description: 'The Net ID to assign changes to when robots make changes (e.g., on a Dependabot auto-merge).'
     required: false
 outputs:
+  rfc-started:
+    description: 'Whether an RFC was started or reused ("true" or "false").'
   change-sys-id:
     description: 'The ID of the Standard Change RFC (Ex: "7bb66e551bb81c10be7cb992cc4bcb9d")'
   rfc-number:

@@ -1,4 +1,4 @@
-const { getInput, setOutput, setFailed, setSecret, debug, info, error, warning } = require('@actions/core')
+const { getInput, setOutput, setFailed, debug, info, error, warning } = require('@actions/core')
 const github = require('@actions/github')
 const wso2 = require('byu-wso2-request')
 const { DateTime } = require('luxon')
@@ -6,12 +6,6 @@ const { isMergeCommitMessage } = require('./utils.js')
 
 const PRODUCTION_API_URL = 'https://api.byu.edu'
 const SANDBOX_API_URL = 'https://api-sandbox.byu.edu'
-const MIN_PLANNED_END_MINUTES = 1
-const MAX_PLANNED_END_MINUTES = 10080
-const REQUEST_TIMEOUT_MS = 10000
-const MAX_RETRY_ATTEMPTS = 3
-const RETRYABLE_STATUS_CODES = [408, 429, 500, 502, 503, 504]
-const IDEMPOTENT_HTTP_METHODS = new Set(['GET', 'HEAD', 'OPTIONS'])
 let host = SANDBOX_API_URL
 
 async function run () {
@@ -25,27 +19,20 @@ async function run () {
   const clientKey = getInput('client-key')
   const clientSecret = getInput('client-secret')
   const templateId = getInput('template-id')
-  const minutesUntilPlannedEndInput = getInput('minutes-until-planned-end')
-  const minutesUntilPlannedEnd = validatePlannedEndMinutes(minutesUntilPlannedEndInput)
+  const minutesUntilPlannedEnd = parseInt(getInput('minutes-until-planned-end'), 10)
   const runInNonProduction = parseBooleanInput(getInput('run-in-non-production') || 'false')
   if (!clientKey || !clientSecret || !templateId) {
     setFailed('Missing a required input.')
     return
   }
-  if (minutesUntilPlannedEnd === null) {
-    setFailed(`Invalid input: minutes-until-planned-end must be an integer between ${MIN_PLANNED_END_MINUTES} and ${MAX_PLANNED_END_MINUTES}. Received "${minutesUntilPlannedEndInput}".`)
-    return
-  }
-  setSecret(clientKey)
-  setSecret(clientSecret)
 
   // Grab some info about the GitHub commits being pushed
   const payload = github.context.payload
-  debug(`Action context: event=${eventName}, ref=${github.context.ref ?? payload.ref ?? 'unknown'}, runId=${github.context.runId}`)
+  debug(`The event payload: ${JSON.stringify(payload, undefined, 2)}`)
   const githubUsername = payload.pusher?.name ?? payload.sender?.login ?? github.context.actor ?? 'github-actions[bot]'
   const numberOfCommits = payload.commits?.length ?? 0
-  const repoName = payload.repository?.full_name ?? `${github.context.repo.owner}/${github.context.repo.repo}`
-  const defaultBranch = payload.repository?.default_branch
+  const repoName = payload.repository.full_name
+  const defaultBranch = payload.repository.default_branch
   const currentBranch = getBranchNameFromRef(github.context.ref ?? payload.ref)
   const isDefaultBranch = (defaultBranch !== undefined && defaultBranch === currentBranch)
   const commitMessages = payload.commits?.map(commit => commit.message) ?? []
@@ -150,36 +137,14 @@ You can check by going to https://${servicenowHost}/nav_to.do?uri=%2Fu_standard_
     setOutput('work-start', convertServicenowTimestampFromMountainToUtc(result.workStart))
     process.exit(0) // Success! For some reason, without this, the action was hanging
   } catch (err) {
-    setFailed(sanitizeErrorMessage(err?.message ?? String(err)))
+    const hydraTokenRegex = /[a-zA-Z0-9]{43}.[a-zA-Z0-9]{43}/g
+    setFailed(err.message.replace(hydraTokenRegex, 'REDACTED'))
     process.exit(1)
   }
 }
 
-async function requestWithRetry (options, retryOptions = {}) {
-  const method = String(options.method ?? 'GET').toUpperCase()
-  const requestOptions = { ...options, method }
-  if (requestOptions.timeout === undefined) {
-    requestOptions.timeout = REQUEST_TIMEOUT_MS
-  }
-
-  const maxAttempts = retryOptions.maxAttempts ?? MAX_RETRY_ATTEMPTS
-  const shouldRetryUnsafeMethods = retryOptions.retryUnsafeMethods ?? false
-  const canRetryMethod = shouldRetryUnsafeMethods || IDEMPOTENT_HTTP_METHODS.has(method)
-
-  for (let attempt = 1; attempt <= maxAttempts; attempt++) {
-    try {
-      return await wso2.request(requestOptions)
-    } catch (err) {
-      const shouldRetry = canRetryMethod && attempt < maxAttempts && isRetryableError(err)
-      if (!shouldRetry) {
-        throw err
-      }
-
-      const delayMs = calculateRetryDelayMs(attempt)
-      debug(`Retrying ${method} request in ${delayMs}ms (attempt ${attempt + 1}/${maxAttempts})`)
-      await sleep(delayMs)
-    }
-  }
+function requestWithRetry (options) {
+  return wso2.request(options).catch(() => wso2.request(options))
 }
 
 async function resolveApiHost (clientKey, clientSecret) {
@@ -205,49 +170,11 @@ function parseBooleanInput (inputValue) {
   return ['1', 'true', 'yes', 'y', 'on'].includes(normalizedValue)
 }
 
-function validatePlannedEndMinutes (inputValue) {
-  const numericValue = Number(inputValue)
-  if (!Number.isInteger(numericValue)) {
-    return null
-  }
-  if (numericValue < MIN_PLANNED_END_MINUTES || numericValue > MAX_PLANNED_END_MINUTES) {
-    return null
-  }
-  return numericValue
-}
-
 function getBranchNameFromRef (ref) {
   if (!ref) return ''
   return ref.startsWith('refs/heads/')
     ? ref.slice('refs/heads/'.length)
     : ref
-}
-
-function isRetryableError (err) {
-  const statusCode = err?.statusCode ?? err?.status
-  if (typeof statusCode === 'number') {
-    return RETRYABLE_STATUS_CODES.includes(statusCode)
-  }
-  return true
-}
-
-function calculateRetryDelayMs (attemptNumber) {
-  const exponentialBackoffMs = 300 * (2 ** (attemptNumber - 1))
-  const boundedBackoffMs = Math.min(exponentialBackoffMs, 5000)
-  const jitterMs = Math.floor(Math.random() * 250)
-  return boundedBackoffMs + jitterMs
-}
-
-function sleep (milliseconds) {
-  return new Promise(resolve => setTimeout(resolve, milliseconds))
-}
-
-function sanitizeErrorMessage (message) {
-  return String(message)
-    .replace(/[a-zA-Z0-9]{43}\.[a-zA-Z0-9]{43}/g, 'REDACTED')
-    .replace(/Bearer\s+[a-zA-Z0-9\-._~+/]+=*/gi, 'Bearer REDACTED')
-    .replace(/(client_secret=)[^&\s]+/gi, '$1REDACTED')
-    .replace(/("client-secret"\s*:\s*")[^"]+(")/gi, '$1REDACTED$2')
 }
 
 async function getRfcIfAlreadyCreated (linkToWorkflowRun) {

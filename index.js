@@ -32,9 +32,6 @@ async function run () {
   const githubUsername = payload.pusher?.name ?? payload.sender?.login ?? github.context.actor ?? 'github-actions[bot]'
   const numberOfCommits = payload.commits?.length ?? 0
   const repoName = payload.repository.full_name
-  const defaultBranch = payload.repository.default_branch
-  const currentBranch = getBranchNameFromRef(github.context.ref ?? payload.ref)
-  const isDefaultBranch = (defaultBranch !== undefined && defaultBranch === currentBranch)
   const commitMessages = payload.commits?.map(commit => commit.message) ?? []
   const linkToCommits = payload.compare
   const deduplicatedFirstLinesOfCommitMessagesWithoutAnyMerges = [...new Set( // Deduplicate
@@ -64,11 +61,7 @@ async function run () {
 
     if (host !== PRODUCTION_API_URL && !runInNonProduction) {
       const skipMessage = 'Skipping Standard Change RFC creation because this appears to be a non-production deployment. Set run-in-non-production to true if you want to create RFCs in sandbox.'
-      if (isDefaultBranch) {
-        warning(skipMessage)
-      } else {
-        debug(skipMessage)
-      }
+      warning(skipMessage)
       setOutput('rfc-started', 'false')
       setOutput('rfc-number', '')
       setOutput('change-sys-id', '')
@@ -168,13 +161,6 @@ async function resolveApiHost (clientKey, clientSecret) {
 function parseBooleanInput (inputValue) {
   const normalizedValue = String(inputValue).trim().toLowerCase()
   return ['1', 'true', 'yes', 'y', 'on'].includes(normalizedValue)
-}
-
-function getBranchNameFromRef (ref) {
-  if (!ref) return ''
-  return ref.startsWith('refs/heads/')
-    ? ref.slice('refs/heads/'.length)
-    : ref
 }
 
 async function getRfcIfAlreadyCreated (linkToWorkflowRun) {
